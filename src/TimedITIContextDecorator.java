@@ -1,4 +1,5 @@
 import java.util.Random;
+import java.awt.Point;
 
 import java.util.ArrayList;
 import processing.data.JSONObject;
@@ -122,7 +123,7 @@ public class TimedITIContextDecorator extends SuspendableContextDecorator {
      *                   0 of the message buffer and must be JSON-formatted strings.
      * @return           ?
      */
-    public boolean check_suspend(float position, float time, int lap, int lick_count,
+    public boolean check_suspend(Point position, float time, int lap, int lick_count,
                                  JSONObject[] msg_buffer) {
         if (this.isSuspended()) {
             if (time > this.next_start) {

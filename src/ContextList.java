@@ -1,6 +1,7 @@
 import java.util.ArrayList;
 import java.util.HashMap;
 import processing.data.JSONObject;
+import java.awt.Point;
 
 /**
  * ?
@@ -43,13 +44,13 @@ public interface ContextList {
      * Sets the length, in mm, the context will span in either direction.
      * @param radius
      */
-    public abstract void setRadius(int radius);
+    public abstract void setSize(Point size);
 
     /**
      *
      * @return An int representing the length, in mm, the context will span in either direction.
      */
-    public abstract int getRadius();
+    public abstract Point getSize();
 
     /**
      *
@@ -58,7 +59,7 @@ public interface ContextList {
     public abstract float getTrackLength();
 
     /**
-     * Sets the scaling used for displaying the implementor's radius in the UI.
+     * Sets the scaling used for displaying the implementer's radius in the UI.
      *
      * @param scale the amount to scale the radius so it displays properly in the UI.
      *              Units are in pixel/mm.
@@ -67,14 +68,14 @@ public interface ContextList {
 
     /**
      *
-     * @return the scaled width, in pixels, used to draw the implementor's radius in the UI.
+     * @return the scaled width, in pixels, used to draw the implementer's radius in the UI.
      */
-    public abstract float displayRadius();
+    public abstract Point displaySize();
 
     /**
      *
      * @return An array of 3 integers, representing the red, green, and blue pixels (in the order)
-     *         used to display the implementor's currently active context.
+     *         used to display the implementer's currently active context.
      */
     public abstract int[] displayColor();
 
@@ -93,7 +94,7 @@ public interface ContextList {
 
     /**
      *
-     * @return The number of contexts wrapped by the implementor.
+     * @return The number of contexts wrapped by the implementer.
      */
     public abstract int size();
 
@@ -104,7 +105,7 @@ public interface ContextList {
      * @param i index of the context to return
      * @return  the context at the supplied index.
      */
-    public abstract int getLocation(int i);
+    public abstract Point getLocation(int i);
 
     /**
      * Todo: I assume the description of getLocation(int) should apply to this method instead.
@@ -119,7 +120,7 @@ public interface ContextList {
      * @param index The index of the context in <code>contexts</code>
      * @param location The new location of the context, in mm.
      */
-    public abstract void move(int index, int location);
+    public abstract void move(int index, Point location);
 
     /**
      * Removes all contexts from the implementor.
@@ -129,14 +130,14 @@ public interface ContextList {
     /**
      * Gives each context a new random location on the track.
      */
-    public abstract void shuffle();
+    //public abstract void shuffle();
 
     /**
      * An array whose ith element contains the location of the ith context of the implementor.
      *
      * @return An array containing context locations.
      */
-    public abstract int[] toList();
+    public abstract int[][] toList();
 
     /**
      * Check the state of the contexts contained in this list and send the
@@ -153,7 +154,7 @@ public interface ContextList {
      *                   message buffer and must be JSON formatted strings.
      * @return           <code>true</code> to indicate that the trial has started.
      */
-    public abstract boolean check(float position, float time, int lap, int lick_count,
+    public abstract boolean check(Point position, float time, int lap, int lick_count,
                                   HashMap<Integer, Integer> sensor_counts, JSONObject[] msg_buffer);
 
 
@@ -206,8 +207,6 @@ public interface ContextList {
     public abstract void shutdown();
 
     /**
-     * Todo: does this send a message to the arduino?
-     *
      * @param message ?
      */
     public abstract void sendMessage(String message);

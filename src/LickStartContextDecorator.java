@@ -1,5 +1,6 @@
 import java.util.HashMap;
 import processing.data.JSONObject;
+import java.awt.Point;
 
 /**
  * ?
@@ -31,6 +32,8 @@ public class LickStartContextDecorator extends ContextListDecorator {
      */
     protected int timeInPosition;
 
+    protected int pin;
+
     /**
      * ?
      *
@@ -39,13 +42,15 @@ public class LickStartContextDecorator extends ContextListDecorator {
      *                     from the settings file. The <tt>max_time</tt> parameter is optional
      *                     and will default to -1 if not provided.
      */
-    public LickStartContextDecorator(ContextList context_list, JSONObject context_info) {
+    public LickStartContextDecorator(ContextList context_list,
+                                     JSONObject context_info, int pin) {
         super(context_list);
         this.last_position = -1;
         this.entered_time = -1;
-        this.prev_lickcount = 0;
+        this.prev_lickcount = -1;
 
         this.max_time = context_info.getInt("max_time", -1);
+        this.pin = pin;
     }
 
     /**
@@ -55,7 +60,18 @@ public class LickStartContextDecorator extends ContextListDecorator {
     public void reset() {
         this.last_position = -1;
         this.entered_time = -1;
-        this.context_list.reset();
+        super.reset();
+    }
+
+    public void end() {
+        this.prev_lickcount = -1;
+        this.reset();
+        super.end();
+    }
+
+    public void trialStart(JSONObject[] msg_buffer) {
+        this.prev_lickcount = -1;
+        super.trialStart(msg_buffer);
     }
 
     /**
@@ -72,27 +88,32 @@ public class LickStartContextDecorator extends ContextListDecorator {
      *                   be placed at index 0 of the message buffer and must be JSON-formatted strings.
      * @return           ?
      */
-    public boolean check(float position, float time, int lap, int lick_count,
+    public boolean check(Point position, float time, int lap, int lick_count,
                          HashMap<Integer, Integer> sensor_counts, JSONObject[] msg_buffer) {
 
-        boolean inPosition = (this.max_time == -1);
+        //boolean inPosition = (this.max_time == -1);
+        if (this.prev_lickcount == -1) {
+            this.prev_lickcount = sensor_counts.get(this.pin);
+            return false;
+        }
+
+        boolean inPosition = false;
         if (!this.context_list.isActive()) {
-            for (int i = 0; (!inPosition && (i < this.context_list.size()) ); i++) {
+            for (int i = 0; (i < this.context_list.size()); i++) {
                 if (this.context_list.getContext(i).checkPosition(position)) {
                     inPosition = true;
-                    if (this.entered_time == -1) {
+                    if ((this.entered_time == -1) || (i != this.last_position)){
                         this.context_list.setStatus("no lick");
                         this.entered_time = time;
-                    } else if (i == this.last_position) {
+                        this.last_position = i;
+                        break;
+                    } else if ((i == this.last_position) && (max_time != -1)) {
                         if (this.entered_time + this.max_time < time) {
-                            prev_lickcount = lick_count;
+                            this.prev_lickcount = sensor_counts.get(this.pin);
                             this.context_list.setStatus("timed out");
                             return false;
                         }
                     }
-
-                    this.last_position = i;
-                    break;
                 }
             }
 
@@ -100,22 +121,22 @@ public class LickStartContextDecorator extends ContextListDecorator {
                 this.entered_time = -1;
                 this.context_list.setStatus("stopped");
 
-                prev_lickcount = lick_count;
+                this.prev_lickcount = sensor_counts.get(this.pin);
                 return false;
             }
 
-            if (lick_count != prev_lickcount) {
-                prev_lickcount = lick_count;
-                return this.context_list.check(
+            if (sensor_counts.get(this.pin) != prev_lickcount) {
+                this.prev_lickcount = sensor_counts.get(this.pin);
+                return super.check(
                         position, time, lap, lick_count, sensor_counts, msg_buffer);
-            } else {
-                prev_lickcount = lick_count;
-                return false;
             }
+
+            this.prev_lickcount = sensor_counts.get(this.pin);
+            return false;
         }
 
-        prev_lickcount = lick_count;
-        return this.context_list.check(
+        this.prev_lickcount = sensor_counts.get(this.pin);
+        return super.check(
                 position, time, lap, lick_count, sensor_counts,  msg_buffer);
     }
 }

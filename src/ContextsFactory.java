@@ -31,37 +31,17 @@ public final class ContextsFactory {
         }
 
         String controller = "behavior_controller";
-        BasicContextList bcl = new BasicContextList(context_info, track_length, controller);
-
-
-        if (class_name.equals( "alternating_context")) {
-            cl = new AlternatingContextDecorator(bcl, context_info);
-        } else if (class_name.equals( "random_context")) {
-            cl = new RandomContextDecorator(bcl, context_info);
-        } else if (class_name.equals( "timed_alt_context")) {
-            AlternatingContextDecorator acd = new AlternatingContextDecorator(bcl, context_info);
-            cl = new TimedContextDecorator(acd, context_info);
-        } else if (class_name.equals( "scheduled_context")) {
-            cl = new ScheduledContextDecorator(bcl, context_info);
-        } else if (class_name.equals("vr2")) {
-            cl = new VrContextList2(tc, context_info, track_length);
-        } else if (class_name.equals("vr_extended")) {
-            cl = new VrExtendedContextList(tc, context_info, track_length);
-        } else if (class_name.equals("vr_cue2")) {
-            cl = new VrCueContextList3(tc, context_info, track_length);
-        } else if (class_name.equals("salience")) {
-            cl = new SalienceContextList(tc, display, context_info, track_length, controller);
-        } else if (class_name.equals("paired_reward_stim")) {
-            cl = new PairedRewardStimContextList(context_info, track_length, controller);
-        } else if (class_name.equals("gain_mod")) {
-            cl = new GainModifiedContextList(tc, context_info, track_length);
-        } else if (class_name.equals("fog_context")) {
-            cl = new VrFogContext(tc, context_info, track_length);
-        } else if (class_name.equals("joint_context")) {
-            cl = new JointContextList(context_info, track_length, controller);
+        if (class_name.equals("depleting_context")) {
+            cl = new DepletingContextList(
+                context_info, track_length, controller,
+                context_info.getInt("sensor"), tc);
+        } else if (class_name.equals("deterministic_depleting")) {
+            cl = new DeterministicDepletingContextList(
+                context_info, track_length, controller, tc);
         } else {
-            cl = bcl;
+            cl = new BasicContextList(context_info, track_length, controller);
         }
+
 
         if (decorators != null) {
             JSONObject timed_context = null;
@@ -70,12 +50,12 @@ public final class ContextsFactory {
                 String decorator_class = decorator.getString("class", "");
                 if (decorator_class.equals("alternating_context")) {
                     cl = new AlternatingContextDecorator(cl, decorator);
-                } else if (decorator_class.equals("running_context")) {
-                    cl = new RunningContextDecorator(cl, decorator, track_length);
+                //} else if (decorator_class.equals("running_context")) {
+                //    cl = new RunningContextDecorator(cl, decorator, track_length);
                 } else if (decorator_class.equals("scheduled_context")) {
                     cl = new ScheduledContextDecorator(cl, decorator);
-                } else if (decorator_class.equals("traveling_context")) {
-                    cl = new TravelingContextDecorator(cl, decorator);
+                //} else if (decorator_class.equals("traveling_context")) {
+                //    cl = new TravelingContextDecorator(cl, decorator);
                 } else if (decorator_class.equals("moving_context")) {
                     cl = new MovingContextDecorator(cl, decorator);
                 } else if (decorator_class.equals("timed_context")) {
@@ -83,17 +63,20 @@ public final class ContextsFactory {
                 } else if (decorator_class.equals("random_context")) {
                     cl = new RandomContextDecorator(cl, decorator);
                 } else if (decorator_class.equals("lickstart_context")) {
-                    cl = new LickStartContextDecorator(cl, decorator);
-                } else if (decorator_class.equals("blocked_shuffle")) {
-                    cl = new BlockedShuffleDecorator(cl, decorator);
+                    cl = new LickStartContextDecorator(cl, decorator,
+                        context_info.getInt("sensor"));
+                //} else if (decorator_class.equals("blocked_shuffle")) {
+                //    cl = new BlockedShuffleDecorator(cl, decorator);
                 } else if (decorator_class.equals("timed_iti")){
                     cl = new TimedITIContextDecorator(tc, cl, decorator);
                 } else if (decorator_class.equals("delayed_context")) {
                     cl = new DelayedContextDecorator(cl, decorator);
                 } else if (decorator_class.equals("joint_suspend")) {
                     cl = new JointSuspendContextDecorator(cl, decorator);
+                } else if (decorator_class.equals("exit_trigger")) {
+                    cl = new TriggerOnExitDecorator(cl, decorator);
                 } else {
-                    throw new IllegalArgumentException("Decorator "+ decorator_class +" not found");
+                    throw new IllegalArgumentException("Decorator " + decorator_class +" not found");
                 }
             }
 

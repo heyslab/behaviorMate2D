@@ -1,3 +1,6 @@
+import java.awt.Point;
+import java.awt.Rectangle;
+
 /**
  * Class for representing a single event or feature of the environment, such as a hallway, reward,
  * or cue. A context is active by default and some contexts are suspendable. The user must decide
@@ -8,7 +11,7 @@ public class Context {
     /**
      * The midpoint, in mm from the start of the track, of the context.
      */
-    int location;
+    Rectangle location;
 
     /**
      * The amount of time, in seconds, the context is active after it has been triggered. Will be
@@ -20,7 +23,8 @@ public class Context {
      * One half the total length, in mm, along the track where this context is active. If the context is
      * placed from 100 mm to 200 mm on the track, its radius is 50 mm.
      */
-    int radius;
+    //int radius;
+    //Point size = new Point(50, 50)
 
     /**
      * The most recent time the context was activated in seconds.
@@ -68,10 +72,15 @@ public class Context {
      * @param id ?
      * @param fixed_duration ?
      */
-    public Context(int location, float duration, int radius, int id, boolean fixed_duration) {
-        this.location = location;
+    public Context(Point location, float duration, Point size, int id,
+                   boolean fixed_duration) {
+        if ((location == null) || (size == null)) {
+            this.location = null;
+        } else {
+            this.location = new Rectangle(location.x, location.y, size.x+1, size.y+1);
+        }
+
         this.duration = duration;
-        this.radius = radius;
         this.fixed_duration = fixed_duration;
         this.triggered = false;
         this.enabled = true;
@@ -89,15 +98,17 @@ public class Context {
      *               If the context is placed from 100 mm to 200 mm on the track, its radius is 50 mm.
      * @param id ?
      */
-    public Context(int location, float duration, int radius, int id) {
-        this(location, duration, radius, id, false);
+    public Context(Point location, float duration, Point size, int id) {
+        this(location, duration, size, id, false);
     }
 
     /**
      * Setter method for the radius attribute.
      */
-    public void setRadius(int radius) {
-        this.radius = radius;
+    public void setSize(Point size) {
+        if (this.location != null) {
+            this.location.resize(size.x, size.y);
+        }
     }
 
     /**
@@ -118,8 +129,12 @@ public class Context {
      *
      * @return The midpoint of the context in mm.
      */
-    public int location() {
-        return this.location;
+    public Point location() {
+        if (this.location == null) {
+            return null;
+        }
+
+        return new Point(this.location.x, this.location.y);
     }
 
     /**
@@ -127,12 +142,12 @@ public class Context {
      * @param position The location to check whether the context is in.
      * @return <code>true</code> if the context is active in this location, <code>false</code> otherwise.
      */
-    protected boolean checkPosition(float position) {
-        if (this.radius == -1) {
+    protected boolean checkPosition(Point position) {
+        if (this.location == null) {
             return true;
         }
 
-        return (position > (location - radius)) && (position < (location + radius));
+        return this.location.contains(position);
     }
 
     // assumes position has already been checked
@@ -144,7 +159,6 @@ public class Context {
      * @return <code>true</code> if the context should be active, <code>false</code> otherwise.
      */
     protected boolean checkTime(float time) {
-        // Todo: does a duration of -1 mean it is always active?
         if (this.duration == -1) {
             return true;
         }
@@ -170,9 +184,9 @@ public class Context {
      * @return <code>True</code> if the fixed-duration context should be active, <code>false</code>
      * otherwise.
      */
-    private boolean check_fixed_duration(float position, float time) {
+    private boolean check_fixed_duration(Point position, float time) {
         // Todo: Should this not also check that position < (this.location + this.radius)
-        if (this.enabled && (position > (this.location - this.radius))) {
+        if (this.enabled && this.location.contains(position)) {
             if (this.started_time == -1) {
                 this.started_time = time;
                 this.enabled = false;
@@ -199,7 +213,7 @@ public class Context {
      * @param time The current time.
      * @return <code>True</code> if the context should be active, <code>false</code> otherwise.
      */
-    public boolean check(float position, float time) {
+    public boolean check(Point position, float time) {
         if (fixed_duration) {
             return check_fixed_duration(position, time);
         }
@@ -214,7 +228,7 @@ public class Context {
      * @param lap ?
      * @return ?
      */
-    public boolean check(float position, float time, int lap) {
+    public boolean check(Point position, float time, int lap) {
         if (fixed_duration) {
             return check_fixed_duration(position, time);
         }
@@ -227,8 +241,8 @@ public class Context {
      *
      * @param location The new location of the context in millimeters.
      */
-    public void move(int location) {
-        this.location = location;
+    public void move(Point new_location) {
+        this.location.setLocation(new_location);
     }
 
     /**

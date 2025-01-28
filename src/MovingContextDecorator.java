@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.awt.Point;
 
 import processing.data.JSONObject;
 import processing.data.JSONArray;
@@ -11,7 +12,7 @@ public class MovingContextDecorator extends ContextListDecorator {
 
     protected ArrayList<Integer> lap_list;
 
-    protected ArrayList<Integer> locations_list;
+    protected ArrayList<Point> locations_list;
 
     protected int repeat;
 
@@ -40,13 +41,15 @@ public class MovingContextDecorator extends ContextListDecorator {
             //TODO: raise exception
         }
 
-        this.locations_list = new ArrayList<Integer>();
+        this.locations_list = new ArrayList<Point>();
         this.locations_list.add(this.getLocation(0));
         JSONArray location_array = null;
         if (!context_info.isNull("lap_list")) {
             location_array = context_info.getJSONArray("locations");
             for (int j = 0; j < lap_array.size(); j++) {
-                this.locations_list.add(location_array.getInt(j));
+                JSONArray pt_array = location_array.getJSONArray(j);
+                this.locations_list.add(
+                    new Point(pt_array.getInt(0), pt_array.getInt(1)));
             }
         } else {
             //TODO: raise exception
@@ -69,7 +72,7 @@ public class MovingContextDecorator extends ContextListDecorator {
         return this.context_list.size();
     }
 
-    public int getLocation(int i) {
+    public Point getLocation(int i) {
         if ((!this.trial_started) && (i < locations_list.size())) {
             return this.locations_list.get(i);
         }
@@ -97,11 +100,11 @@ public class MovingContextDecorator extends ContextListDecorator {
         this.context_list.end();
     }
 
-    public boolean check(float position, float time, int lap,
+    public boolean check(Point position, float time, int lap,
                          int lick_count,
                          HashMap<Integer, Integer> sensor_counts,
                          JSONObject[] msg_buffer) {
-        
+
         this.trial_started = true;
         return this.context_list.check(position, time, lap, lick_count,
                                        sensor_counts, msg_buffer);

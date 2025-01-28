@@ -3,6 +3,8 @@ import processing.data.JSONObject;
 import processing.data.JSONArray;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.awt.Rectangle;
+import java.awt.Point;
 
 /**
  * Controls activating and stopping contexts as the animal progresses along the track.
@@ -23,7 +25,7 @@ public class BasicContextList extends PApplet implements ContextList {
     /**
      * Distance (in mm) around each location that context spans.
      */
-    protected int radius;
+    protected Point size;
 
     /**
      * ? - Used when displaying
@@ -64,12 +66,6 @@ public class BasicContextList extends PApplet implements ContextList {
     protected String status;
 
     /**
-     * If set to true, the location of the contexts will be shuffled between
-     * laps or when the ContextList is reset.
-     */
-    protected boolean shuffle_contexts;
-
-    /**
      * The length of each lap (in mm).
      */
     protected float track_length;
@@ -82,9 +78,8 @@ public class BasicContextList extends PApplet implements ContextList {
 
     /**
      * The radius to represent this context as in the UI.
-     * Todo: why not just use BasicContextList.radius? Is this a scaled version of radius?
      */
-    protected float display_radius;
+    protected Point display_size;
 
     /**
      * UdpClient for sending messages to which relate to this context.
@@ -138,13 +133,15 @@ public class BasicContextList extends PApplet implements ContextList {
      * @param comm_id      ?
      *
      */
-    public BasicContextList(JSONObject context_info, float track_length, String comm_id) {
+    public BasicContextList(JSONObject context_info, float track_length,
+                            String comm_id) {
         this.contexts = new ArrayList<Context>();
         this.comm = null;
         this.comm_id = comm_id;
         this.sent = -1;
         this.tries = 0;
         this.waiting = false;
+        this.display_size = new Point(1, 1);
         this.fixed_duration = context_info.getBoolean("fixed_duration", false);
 
         this.log_json = new JSONObject();
@@ -158,7 +155,11 @@ public class BasicContextList extends PApplet implements ContextList {
         setId(context_info.getString("id"));
 
         this.duration = context_info.getFloat("max_duration", -1);
-        this.radius = context_info.getInt("radius", -1);
+        if (context_info.isNull("size")) {
+            System.out.println(context_info.toString());
+        }
+        JSONArray size_array = context_info.getJSONArray("size");
+        this.size = new Point(size_array.getInt(0), size_array.getInt(1));
         this.active = -1;
         this.status = "";
         this.track_length = track_length;
@@ -174,42 +175,16 @@ public class BasicContextList extends PApplet implements ContextList {
         }
 
         // positions the contexts
-        this.shuffle_contexts = false;
         JSONArray locations = null;
-        try {
-            locations = context_info.getJSONArray("locations");
-        } catch (RuntimeException e) { }
+        locations = context_info.getJSONArray("locations");
 
         // if locations is null - specific locations for this context are not
         // supplied
         if (locations != null) {
             for (int i=0; i < locations.size(); i++) {
-                add(locations.getInt(i));
-            }
-        } else {
-            // either the field "number" is preserved for compatibility with
-            // old settings files. now "locations" not being an integer instead
-            // of a list is sufficient
-            int num_contexts = context_info.getInt("locations",
-                context_info.getInt("number", 0));
-
-            if (num_contexts == 0) {
-                // if no number is assigned, then assign this context to the
-                // entire track
-                add((int)(track_length/2.0) + 2);
-                this.radius = (int)(track_length/2.0) + 2;
-            } else {
-                // otherwise add the contexts randomly and shuffle each lap
-                for (int i=0; i < num_contexts; i++) {
-                    add((int)(track_length/2.0));
-                    this.shuffle_contexts = true;
-                    shuffle();
-                    //setShuffle(true, track_length);
-                }
+                add(locations.getJSONArray(i));
             }
         }
-
-        //sendCreateMessages();
     }
 
     /**
@@ -224,7 +199,7 @@ public class BasicContextList extends PApplet implements ContextList {
      * ?
      */
     public void sendCreateMessages() {
-        // comm may be null for certian subclasses of ContextList which to not
+        // comm may be null for certain subclasses of ContextList which to not
         // need to talk to the behavior arduino
         if (comm != null) {
             context_info.setString("action", "create");
@@ -345,16 +320,15 @@ public class BasicContextList extends PApplet implements ContextList {
      * Sets the length, in mm, the contexts will span in either direction.
      * @param radius
      */
-    public void setRadius(int radius) {
-        if (radius == 0) {
-            radius = (int)(track_length/2.0) + 2;
+    public void setSize(Point size) {
+        if (size != null) {
+
+            for (Context context : this.contexts) {
+                context.setSize(size);
+            }
         }
 
-        for (Context context : this.contexts) {
-            context.setRadius(radius);
-        }
-
-        this.radius = radius;
+        this.size = size;
         this.setDisplayScale(this.scale);
     }
 
@@ -362,8 +336,8 @@ public class BasicContextList extends PApplet implements ContextList {
      *
      * @return An int representing the length, in mm, the contexts span in either direction.
      */
-    public int getRadius() {
-        return this.radius;
+    public Point getSize() {
+        return this.size;
     }
 
     /**
@@ -382,15 +356,16 @@ public class BasicContextList extends PApplet implements ContextList {
      */
     public void setDisplayScale(float scale) {
         this.scale = scale;
-        this.display_radius = ((float)this.radius) * scale;
+        this.display_size.move(
+            (int) (this.size.x * scale), (int) (this.size.y * scale));
     }
 
     /**
      *
      * @return the scaled width, in pixels, used to draw this BasicContextList's radius in the UI.
      */
-    public float displayRadius() {
-        return this.display_radius;
+    public Point displaySize() {
+        return this.display_size;
     }
 
     /**
@@ -439,7 +414,7 @@ public class BasicContextList extends PApplet implements ContextList {
      * @param i index of the context to return
      * @return  The location of the context at the supplied index.
      */
-    public int getLocation(int i) {
+    public Point getLocation(int i) {
         return this.contexts.get(i).location();
     }
 
@@ -458,9 +433,17 @@ public class BasicContextList extends PApplet implements ContextList {
      *
      * @param location Distance, in mm, from the start of the track to place this context.
      */
-    protected void add(int location) {
+    protected void add(JSONArray location) {
+        Point pt = new Point(location.getInt(0), location.getInt(1));
         this.contexts.add(new Context(
-                location, this.duration, this.radius, this.contexts.size(), this.fixed_duration));
+                pt, this.duration, this.size, this.contexts.size(),
+                this.fixed_duration));
+    }
+
+    protected void add(Point pt) {
+        this.contexts.add(new Context(
+                pt, this.duration, this.size, this.contexts.size(),
+                this.fixed_duration));
     }
 
     /**
@@ -469,7 +452,7 @@ public class BasicContextList extends PApplet implements ContextList {
      * @param index The index of the context in <code>contexts</code>
      * @param location The new location of the context, in mm.
      */
-    public void move(int index, int location) {
+    public void move(int index, Point location) {
         this.contexts.get(index).move(location);
     }
 
@@ -497,16 +480,8 @@ public class BasicContextList extends PApplet implements ContextList {
      * is <code>true</code>, the contexts will be shuffled.
      */
     public void reset() {
-//        for (int i=0; i < this.contexts.size(); i++) {
-//            this.contexts.get(i).reset();
-//        }
-
         for (Context context : contexts) {
             context.reset();
-        }
-
-        if (this.shuffle_contexts) { // maybe this check should be in shuffle()?
-            shuffle();
         }
     }
 
@@ -520,52 +495,16 @@ public class BasicContextList extends PApplet implements ContextList {
     }
 
     /**
-     * Gives each context a new random location on the track.
-     */
-    public void shuffle() {
-        // return immediately if there are no contexts to shuffle
-        if (this.contexts.size() == 0) {
-            return;
-        }
-
-        if (this.contexts.size() == 1) {
-            this.move(0, (int) random(this.radius, this.track_length-this.radius));
-            return;
-        }
-
-        // initially position contexts evenly spaced
-        int interval = (int)(this.track_length-2*this.radius)/this.contexts.size();
-        this.move(0, this.radius + interval/2);
-        for (int i = 1; i < this.contexts.size(); i++) {
-            this.move(i, this.contexts.get(i-1).location() + interval);
-        }
-
-        // move the contexts randomly without allowing them to overlap
-        this.move(0, 
-            (int) random(this.radius,this.contexts.get(1).location()-2*this.radius));
-
-        for (int i = 1; i < this.contexts.size()-1; i++) {
-            int prev_location = this.contexts.get(i-1).location();
-            int next_location = this.contexts.get(i+1).location();
-            this.move(i,
-                (int) random(prev_location+2*this.radius, next_location-2*this.radius));
-        }
-
-        int prev_location = this.contexts.get(this.size()-2).location();
-        this.move(this.size()-1,
-            (int) random(prev_location+2*this.radius, this.track_length-this.radius));
-    }
-
-    /**
      * An array whose ith element contains the location of the ith context of this
      * BasicContextList.
      *
      * @return An array containing context locations.
      */
-    public int[] toList() {
-        int[] list = new int[contexts.size()];
+    public int[][] toList() {
+        int[][] list = new int[contexts.size()][4];
         for (int i = 0; i < contexts.size(); i++) {
-            list[i] = contexts.get(i).location;
+            Rectangle location = contexts.get(i).location;
+            list[i] = new int[]{location.x, location.y, location.width, location.height};
         }
 
         return list;
@@ -592,7 +531,7 @@ public class BasicContextList extends PApplet implements ContextList {
      *                   the state of the context, but does not actually
      *                   influence the connected arduinos or UI.
      */
-    protected boolean check(float position, float time, int lap, int lick_count,
+    protected boolean check(Point position, float time, int lap, int lick_count,
                          JSONObject[] msg_buffer) {
 
         return check(position, time, lap, msg_buffer);
@@ -621,7 +560,7 @@ public class BasicContextList extends PApplet implements ContextList {
      *                   the state of the context, but does not actually
      *                   influence the connected arduinos or UI.
      */
-    public boolean check(float position, float time, int lap, int lick_count, HashMap<Integer,
+    public boolean check(Point position, float time, int lap, int lick_count, HashMap<Integer,
             Integer> sensor_counts, JSONObject[] msg_buffer) {
 
         return check(position, time, lap, msg_buffer);
@@ -645,7 +584,7 @@ public class BasicContextList extends PApplet implements ContextList {
      *                   the state of the context, but does not actually
      *                   influence the connected arduinos or UI.
      */
-    protected boolean check(float position, float time, int lap, JSONObject[] msg_buffer) {
+    protected boolean check(Point position, float time, int lap, JSONObject[] msg_buffer) {
         boolean inZone = false;
         int i = 0;
 

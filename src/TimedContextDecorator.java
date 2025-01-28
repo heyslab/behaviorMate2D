@@ -1,6 +1,7 @@
 import java.util.HashMap;
 import processing.data.JSONObject;
 import processing.data.JSONArray;
+import java.awt.Point;
 
 /**
  * ?
@@ -180,7 +181,7 @@ public class TimedContextDecorator extends SuspendableContextDecorator {
      *                   message buffer and must be JSON-formatted strings.
      * @return           ?
      */
-    public boolean check(float position, float time, int lap, int lick_count,
+    public boolean check(Point position, float time, int lap, int lick_count,
                          HashMap<Integer, Integer> sensor_counts, JSONObject[] msg_buffer) {
 
         this.actual_lap = lap;

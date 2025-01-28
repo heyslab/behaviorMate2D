@@ -7,8 +7,10 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.lang.NullPointerException;
 import java.lang.*;
+import java.awt.Point;
 
 import processing.core.PApplet;
 import processing.core.PGraphics;
@@ -128,6 +130,7 @@ public class TreadmillController extends PApplet {
      */
     JSONObject system_json;
 
+    Point position2d;
     //TODO: rename offset_position->position since this is confusing and remove
     // this
     /**
@@ -179,7 +182,8 @@ public class TreadmillController extends PApplet {
      * The length of the track in millimeters. Set to the "track_length"
      * property in the settings file.
      */
-    float track_length;
+    //float track_length;
+    Point environment_size;
 
     /**
      * RFID tag string indicating that a lap has been completed and position
@@ -279,6 +283,8 @@ public class TreadmillController extends PApplet {
      * Pin number for the reward valve.
      */
     int reward_valve;
+
+    ArrayList<Integer> reward_valves;
 
     /**
      * Pin number lickport is attached to.
@@ -424,6 +430,11 @@ public class TreadmillController extends PApplet {
         return testComms(true);
     }
 
+    public void increment_trial() {
+        lap_count++;
+        display.setLapCount(lap_count);
+    }
+
     /**
      * Starts a new experiment. Linked to clicking the "Start" button on the UI.
      * Creates a New Log file, makes the initial entries,
@@ -442,7 +453,7 @@ public class TreadmillController extends PApplet {
         display.setLapCount(0);
         display.setRewardCount(0);
         display.resetFreeRewardCount();
-        lap_count=0;
+        lap_count = 0;
 
         if (fWriter != null) {
             fWriter.close();
@@ -892,6 +903,9 @@ public class TreadmillController extends PApplet {
             JSONObject create_json = new JSONObject();
             create_json.setJSONObject("sensors", create_subjson);
 
+            int pin = create_subjson.getInt("pin");
+            sensor_counts.put(pin, 0);
+
             behavior_comm.sendMessage(create_json.toString());
             delay(150);
         }
@@ -907,6 +921,7 @@ public class TreadmillController extends PApplet {
      */
     void configure_rewards() throws Exception {
         JSONObject reward_info = settings_json.getJSONObject("reward");
+        this.reward_valves = new ArrayList<Integer>();
 
         JSONArray contexts_array;
         if (settings_json.isNull("contexts")) {
@@ -914,17 +929,33 @@ public class TreadmillController extends PApplet {
         }
 
         contexts_array = settings_json.getJSONArray("contexts");
+        ArrayList<String> reward_ids;
 
         if (!reward_info.isNull("id")) {
-            String reward_context = reward_info.getString("id");
+            try {
+                JSONArray contexts_json = reward_info.getJSONArray("id");
+                reward_ids = new ArrayList<String>(contexts_json.size());
+                for (int i = 0; i < contexts_json.size(); i++) {
+                    reward_ids.add(contexts_json.getString(i));
+                }
+            } catch (RuntimeException e) {
+                reward_ids = new ArrayList<String>(1);
+                reward_ids.add(reward_info.getString("id"));
+            }
+
             for (int i=0; i < contexts_array.size(); i++) {
                 JSONObject context = contexts_array.getJSONObject(i);
-                if (context.getString("id").equals(reward_context)) {
-                    JSONArray valve_list = context.getJSONArray("valves");
-                    reward_valve = valve_list.getInt(0);
-                    return;
+                if (reward_ids.contains(context.getString("id"))) {
+                    JSONArray valves = context.getJSONArray("valves");
+                    for (int j=0; j < valves.size(); j++) {
+                        if (!this.reward_valves.contains(valves.getInt(j))) {
+                            this.reward_valves.add(valves.getInt(j));
+                        }
+                    }
                 }
             }
+            reward_valve = reward_valves.get(0);
+            return;
         }
 
         reward_info.setString("id", "reward");
@@ -934,6 +965,7 @@ public class TreadmillController extends PApplet {
 
         if (!reward_info.isNull("pin")) {
             reward_valve = reward_info.getInt("pin");
+            reward_valves.add(reward_info.getInt("pin"));
             JSONArray context_valves = new JSONArray();
             context_valves.append(reward_valve);
             reward_info.setJSONArray("valves", context_valves);
@@ -1106,7 +1138,10 @@ public class TreadmillController extends PApplet {
         } else {
             settings_json.setFloat("position_scale", position_scale);
         }
-        track_length = settings_json.getFloat("track_length");
+
+        //track_length = settings_json.getFloat("track_length");
+        int[] env_size = settings_json.getJSONArray("environment_size").getIntArray();
+        environment_size = new Point(env_size[0], env_size[1]);
         lap_tag = settings_json.getString("lap_reset_tag", "");
         if (!lap_tag.equals("")) {
             lap_tolerance = settings_json.getFloat("lap_tolerance", 0.99f);
@@ -1159,7 +1194,7 @@ public class TreadmillController extends PApplet {
                 settings_json.getInt("sync_pin"));
             behavior_comm.sendMessage(valve_json.toString());
         }
-        display.setTrackLength(track_length);
+        display.setTrackLength(environment_size);
 
         if (!settings_json.isNull("reward")) {
             configure_rewards();
@@ -1179,17 +1214,13 @@ public class TreadmillController extends PApplet {
 
         if (!settings_json.isNull("contexts")) {
             delay(10);
-            VrContextList2 vr_context = null;
-            ArrayList<VrCueContextList3> cue_lists =
-                new ArrayList<VrCueContextList3>();
-
             JSONArray contexts_array = settings_json.getJSONArray("contexts");
             for (int i = 0; i < contexts_array.size(); i++) {
                 JSONObject context_info = contexts_array.getJSONObject(i);
                 String context_class = context_info.getString("class",
                                                               "context");
                 ContextList context_list = ContextsFactory.Create(
-                        this, display, context_info, track_length,
+                        this, display, context_info, (float) environment_size.x,
                         behavior_comm, context_class);
                 contexts.add(context_list);
 
@@ -1377,6 +1408,7 @@ public class TreadmillController extends PApplet {
         position_reset = false;
         trial_duration = -1;
         lap_limit = -1;
+        position2d = new Point(0, 0);
         position = -1;
         offset_position = -1;
         distance = 0;
@@ -1392,7 +1424,7 @@ public class TreadmillController extends PApplet {
 
         PGraphics img = createGraphics(100,100);
         display = new Display();
-        display.prepGraphics(this);
+        //display.prepGraphics(this);
 
         position_comm = null;
         behavior_comm = null;
@@ -1503,106 +1535,51 @@ public class TreadmillController extends PApplet {
             return 0;
         }
 
-        boolean reset_lap = false;
         float dy = 0;
+        Point new_pos = null;
         JSONObject position_json = null;
         for (int i = 0;
              ((i < 10) && (position_comm.receiveMessage(json_buffer)));
              i++) {
-            if ((dy != 0) && (started) && (position_json != null)) {
+            if ((started) && (position_json != null)) {
                 fWriter.write(position_json.toString());
             }
 
             position_json = json_buffer.json.getJSONObject(position_comm.id);
 
-            // reset lap and process contexts before parsing the next position
-            // update
-            if (!position_json.isNull("lap_reset")) {
-                display.setCurrentTag("", distance - track_length);
-                if (position_reset) {
-                    reset_lap = true;
-                    break;
-                }
-            }
-
-            if (!position_json.isNull("position")) {
-                dy += position_json.getJSONObject("position").getFloat("dy", 0);
-            } else if (started) {
+            if (position_json.isNull("position") && (started)) {
                 json_buffer.json.setFloat("time", time);
                 fWriter.write(json_buffer.json.toString());
             }
         }
 
-        dy /= position_scale;
+        if ((position_json == null) || position_json.isNull("position")) {
+            display.setPositionRate(0);
+            return dy;
+        }
+
+        if (!position_json.getJSONObject("position").isNull("xy")) {
+            JSONArray pos_array = position_json.getJSONObject(
+                "position").getJSONArray("xy");
+            new_pos = new Point(
+                Math.min(this.environment_size.x,
+                         Math.max(0, pos_array.getInt(0))),
+                Math.min(this.environment_size.y,
+                         Math.max(0, pos_array.getInt(1))));
+        }
+
+        dy = (float) Math.abs(position2d.distance(new_pos));
         display.setPositionRate(dy);
 
-        if ((dy == 0) && (!reset_lap)) {
-            return 0;
-        }
-
         distance += dy;
-        offset_distance += dy;
-        if ((position != -1) && (!((zero_position_boundary) &&
-            (position + dy < 0)))) {
-            if ((position + dy) < 0) {
-                position += track_length;
-            }
-            position += dy;
-            offset_position += dy;
-            if (offset_position >= track_length) {
-                offset_position -= track_length;
-                if (offset_distance > track_length/2) {
-                    resetLap("", time);
-                    offset_distance = 0;
-                }
-            } else if (offset_position < 0 ) {
-                offset_position += track_length;
-            }
-        }
 
-        if (reset_lap) {
-            if (position == -1) {
-                position = 0;
-                offset_position = lap_offset;
-                distance = 0;
-
-            // check that this is a legitimate lap reset read
-            } else if (distance > track_length/2) {
-
-                // position == -1 means that the lap reader has been initialized
-                // since BehviorMate was started yet.
-                if (belt_calibration_mode) {
-                    current_calibration = (
-                        (current_calibration * n_calibrations) +
-                        position_scale *
-                        (1 + (distance - track_length)/track_length)
-                        )/(++n_calibrations);
-                    position_scale = current_calibration;
-                    display.setPositionScale(position_scale);
-                    display.setMouseName(
-                        "New Calibration: "+ current_calibration +
-                        "\nLap Error: " + (distance-track_length));
-                }
-
-                // check to see if the lap number needs to be updated
-                if (offset_distance >= track_length/2) {
-                    resetLap("", time);
-                    offset_distance = 0;
-                }
-                position = 0;
-                offset_position = lap_offset;
-                distance = 0;
-            }
-        } else if (position >= track_length) {
-            position -= track_length;
-        }
-
+        position2d.setLocation(new_pos);
         if (started) {
-            json_buffer.json.setFloat("y", offset_position);
+            json_buffer.json.setFloat("x", position2d.x);
+            json_buffer.json.setFloat("y", position2d.y);
             json_buffer.json.setFloat("time", time);
             fWriter.write(json_buffer.json.toString());
         }
-
         return dy;
     }
 
@@ -1630,19 +1607,36 @@ public class TreadmillController extends PApplet {
             if (!behavior_json.isNull("lick")) {
                 String action = behavior_json.getJSONObject("lick")
                         .getString("action", "none");
+                int sensor_pin = behavior_json.getJSONObject(
+                    "lick").getInt("pin", -1);
+
                 if (action.equals("start")) {
                     display.addLick(started);
                     lick_count++;
-                } else if (
-                    (action.equals("stop") || (action.equals("created")))) {
+
+                    if (sensor_pin != -1) {
+                        display.setSensorState(sensor_pin, 1);
+                        sensor_counts.put(sensor_pin,
+                                          sensor_counts.get(sensor_pin) + 1);
+                    }
+                } else if (action.equals("stop")) {
                     display.lickStop();
+                    if (sensor_pin != -1) {
+                        display.setSensorState(sensor_pin, -1);
+                    }
+                } else if (action.equals("created")) {
+                    display.lickStop();
+                    if (sensor_pin != -1) {
+                        display.setSensorState(sensor_pin, -1);
+                        sensor_counts.put(sensor_pin, 0);
+                    }
                 }
             }
 
             if (!behavior_json.isNull("valve")) {
                 JSONObject valveJson = behavior_json.getJSONObject("valve");
                 int valve_pin = valveJson.getInt("pin", -1);
-                if (valve_pin == reward_valve) {
+                if (this.reward_valves.contains(valve_pin)) {
                     if (valveJson.getString("action", "close").equals("open")) {
                         display.addReward();
                     }
@@ -1678,18 +1672,6 @@ public class TreadmillController extends PApplet {
                         sensor_counts.put(sensor_pin, 0);
                         display.setSensorState(sensor_pin, -1);
                     }
-                }
-            }
-
-            if (!behavior_json.isNull("tag_reader") &&
-                    !behavior_json.getJSONObject("tag_reader").isNull("tag")) {
-                JSONObject tag = behavior_json.getJSONObject("tag_reader");
-                String tag_id = tag.getString("tag");
-                display.setCurrentTag(tag_id, distance-track_length);
-                if (tag_id.equals(lap_tag)) {
-                    position = 0;
-                    offset_position = lap_offset;
-                    resetLap(lap_tag, time);
                 }
             }
 
@@ -1730,6 +1712,14 @@ public class TreadmillController extends PApplet {
                         }
                     }
                 }
+            }
+
+            if (!behavior_json.isNull("start_experiment") && (!started)) {
+                Start(behavior_json.getJSONObject(
+                        "start_experiment").getString("mouse_name"),
+                      behavior_json.getJSONObject(
+                        "start_experiment").getString("experiment_id"));
+                trialListener.disable_controls();
             }
 
             if (!behavior_json.isNull("starting")) {
@@ -1793,7 +1783,7 @@ public class TreadmillController extends PApplet {
 
         if (started) {
             for (int i=0; i < contexts.size(); i++) {
-                contexts.get(i).check(offset_position, time, lap_count,
+                contexts.get(i).check(position2d, time, lap_count,
                                       lick_count, sensor_counts, msg_buffer);
                 if (msg_buffer[0] != null) {
                     this.writeLog(msg_buffer[0], time);
@@ -1814,7 +1804,7 @@ public class TreadmillController extends PApplet {
         int t = millis();
         int display_check = t - display_update;
         if (display_check > display_rate) {
-            display.update(this, dy, offset_position, time);
+            display.update(this, dy, position2d, time);
             display_update = t;
         }
     }
@@ -1907,6 +1897,13 @@ public class TreadmillController extends PApplet {
         lap_count = 0;
         lick_count = 0;
         sensor_counts = new HashMap<Integer, Integer>();
+        JSONArray sensors = settings_json.getJSONArray("sensors");
+        for (int i=0; i < sensors.size(); i++) {
+            JSONObject create_subjson = sensors.getJSONObject(i);
+            int pin = create_subjson.getInt("pin");
+            sensor_counts.put(pin, 0);
+        }
+
 
         if (!settings_json.isNull("trial_shutdown")) {
             try {

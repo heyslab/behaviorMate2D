@@ -1,5 +1,6 @@
 import java.util.HashMap;
 import processing.data.JSONObject;
+import java.awt.Point;
 
 /**
  * Allows the wrapped <code>ContextList</code> to be suspended.
@@ -88,7 +89,7 @@ public abstract class SuspendableContextDecorator extends ContextListDecorator {
      *                   0 of the message buffer and must be JSON-formatted strings.
      * @return           ?
      */
-    protected boolean check_suspend(float position, float time, int lap, int lick_count,
+    protected boolean check_suspend(Point position, float time, int lap, int lick_count,
                                     JSONObject[] msg_buffer) {
 
         return false;
@@ -108,7 +109,7 @@ public abstract class SuspendableContextDecorator extends ContextListDecorator {
      *                   message buffer and must be JSON-formatted strings.
      * @return           ?
      */
-    public boolean check_suspend(float position, float time, int lap, int lick_count,
+    public boolean check_suspend(Point position, float time, int lap, int lick_count,
                                  HashMap<Integer, Integer> sensor_counts, JSONObject[] msg_buffer) {
 
         return this.check_suspend(position, time, lap, lick_count, msg_buffer);
@@ -131,7 +132,7 @@ public abstract class SuspendableContextDecorator extends ContextListDecorator {
      *                   message buffer and must be JSON-formatted strings.
      * @return           ?
      */
-    public boolean check(float position, float time, int lap, int lick_count,
+    public boolean check(Point position, float time, int lap, int lick_count,
                          HashMap<Integer, Integer> sensor_counts, JSONObject[] msg_buffer) {
 
         if (check_suspend(position, time, lap, lick_count, sensor_counts, msg_buffer)) {

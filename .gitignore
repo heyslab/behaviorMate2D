@@ -3,3 +3,5 @@ behaviorData/
 logs/
 .idea/
 behaviorMate.iml
+*.class
+.*

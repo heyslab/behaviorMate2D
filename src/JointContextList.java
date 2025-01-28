@@ -1,5 +1,6 @@
 import processing.data.JSONObject;
 import java.util.ArrayList;
+import java.awt.Point;
 
 /**
  * Placeholder
@@ -19,7 +20,7 @@ public class JointContextList extends BasicContextList {
     /**
      * ?
      */
-    protected int offset;
+    protected Point offset;
 
     /**
      * ?
@@ -40,9 +41,15 @@ public class JointContextList extends BasicContextList {
         super(context_info, track_length, comm_id);
         this.joint_list_id = context_info.getString("joint_id");
 
-        this.setRadius(context_info.getInt("radius", 0));
-        this.fix_radius = (!context_info.hasKey("radius"));
-        this.offset = context_info.getInt("offset", 0);
+        Point size = new Point(
+            context_info.getJSONArray("size").getInt(0),
+            context_info.getJSONArray("size").getInt(1));
+        this.setSize(size);
+
+        this.fix_radius = (!context_info.hasKey("size"));
+        this.offset = new Point(
+            context_info.getJSONArray("offset").getInt(0),
+            context_info.getJSONArray("offset").getInt(1));
     }
 
     /**
@@ -69,7 +76,7 @@ public class JointContextList extends BasicContextList {
 
         System.out.println(this.fix_radius);
         if (this.fix_radius) {
-            this.setRadius(this.joint_list.getRadius());
+            this.setSize(this.joint_list.getSize());
         }
         this.update();
     }
@@ -81,11 +88,15 @@ public class JointContextList extends BasicContextList {
         if (this.joint_list.size() != this.size()) {
             super.clear();
             for (int i = 0; i < this.joint_list.size(); i++) {
-                super.add(this.joint_list.getLocation(i) + this.offset);
+                Point pt = new Point(this.joint_list.getLocation(i));
+                pt.translate(this.offset.x, this.offset.y);
+                super.add(pt);
             }
         } else {
             for (int i = 0; i < this.joint_list.size(); i++) {
-                super.move(i, this.joint_list.getLocation(i) + this.offset);
+                Point pt = new Point(this.joint_list.getLocation(i));
+                pt.translate(this.offset.x, this.offset.y);
+                super.move(i, pt);
             }
         }
 

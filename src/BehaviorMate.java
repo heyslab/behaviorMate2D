@@ -593,6 +593,11 @@ class TrialListener {
         controlPanel.refreshSettings();
     }
 
+    public void disable_controls() {
+        this.controlPanel.setEnabled(false);
+        System.out.println("I am here");
+    }
+
     /**
      * Method called subsequent to the end of a trial.
      */

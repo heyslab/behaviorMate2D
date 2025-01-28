@@ -1,6 +1,7 @@
 import java.util.ArrayList;
 import java.util.HashMap;
 import processing.data.JSONObject;
+import java.awt.Point;
 
 /**
  * Class for wrapping an instance of a class that implements the <code>ContextList</code> interface
@@ -36,12 +37,12 @@ public class ContextListDecorator implements ContextList {
         return this.context_list.getId();
     }
 
-    public void setRadius(int radius) {
-        this.context_list.setRadius(radius);
+    public void setSize(Point size) {
+        this.context_list.setSize(size);
     }
 
-    public int getRadius() {
-        return this.context_list.getRadius();
+    public Point getSize() {
+        return this.context_list.getSize();
     }
 
     public float getTrackLength() {
@@ -52,8 +53,8 @@ public class ContextListDecorator implements ContextList {
         this.context_list.setDisplayScale(scale);
     }
 
-    public float displayRadius() {
-        return this.context_list.displayRadius();
+    public Point displaySize() {
+        return this.context_list.displaySize();
     }
 
     public int[] displayColor() {
@@ -72,7 +73,7 @@ public class ContextListDecorator implements ContextList {
         return this.context_list.size();
     }
 
-    public int getLocation(int i) {
+    public Point getLocation(int i) {
         return this.context_list.getLocation(i);
     }
 
@@ -80,7 +81,7 @@ public class ContextListDecorator implements ContextList {
         return this.context_list.getContext(i);
     }
 
-    public void move(int index, int location) {
+    public void move(int index, Point location) {
         this.context_list.move(index, location);
     }
 
@@ -89,15 +90,15 @@ public class ContextListDecorator implements ContextList {
         this.context_list.clear();
     }
 
-    public void shuffle() {
-        this.context_list.shuffle();
-    }
+    //public void shuffle() {
+    //    this.context_list.shuffle();
+    //}
 
-    public int[] toList() {
+    public int[][] toList() {
         return this.context_list.toList();
     }
 
-    public boolean check(float position, float time, int lap, int lick_count, HashMap<Integer,
+    public boolean check(Point position, float time, int lap, int lick_count, HashMap<Integer,
             Integer> sensor_counts, JSONObject[] msg_buffer) {
 
         return this.context_list.check(position, time, lap, lick_count, sensor_counts, msg_buffer);

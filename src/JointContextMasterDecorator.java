@@ -1,3 +1,5 @@
+import java.awt.Point;
+
 /**
  * ?
  */
@@ -25,7 +27,7 @@ public class JointContextMasterDecorator extends ContextListDecorator {
      * @param index The index of the context to move.
      * @param location The new location on the track in millimeters.
      */
-    public void move(int index, int location) {
+    public void move(int index, Point location) {
         this.context_list.move(index, location);
         this.slave_list.update();
     }
@@ -34,10 +36,10 @@ public class JointContextMasterDecorator extends ContextListDecorator {
      * Randomizes the locations of the contexts in the wrapped <code>ContextList</code> and
      * updates the wrapped <code>JointContextList</code>.
      */
-    public void shuffle() {
-        this.context_list.shuffle();
-        this.slave_list.update();
-    }
+    //public void shuffle() {
+    //    this.context_list.shuffle();
+    //    this.slave_list.update();
+    //}
 
     /**
      * Removes all contexts from the wrapped <code>ContextList</code> and updates the wrapped

@@ -2,6 +2,7 @@ import processing.core.PApplet;
 import processing.core.PFont;
 import processing.core.PGraphics;
 import java.util.ArrayList;
+import java.awt.Point;
 
 /**
  * Display update to the screen showing the current behavior of the animal on
@@ -35,6 +36,7 @@ public class Display extends PApplet {
     private PGraphics pg;
     private String totalTime;
     private String bottom_message;
+    private float[] size;
 
     public Display() {
         lickRate = 0;
@@ -69,8 +71,17 @@ public class Display extends PApplet {
         contextsContainer = new ArrayList<ContextList>();
     }
 
-    void setTrackLength(float trackLength) {
-        displayScale = 300.0f/trackLength;
+    void setTrackLength(Point environment_size) {
+        if ((environment_size.y > environment_size.x) ||
+                (environment_size.y > 200)) {
+            this.displayScale = 200.0f/((float) environment_size.y);
+        } else {
+            this.displayScale = 300.0f/((float) environment_size.x);
+        }
+
+        this.size = new float[]{this.displayScale * (float) environment_size.x,
+                                this.displayScale * (float) environment_size.y};
+        this.map_offset = (int) (150.0f + (300.0f - this.size[0]) / 2.0f);
     }
 
     void setMouseName(String mouseName) {
@@ -175,15 +186,15 @@ public class Display extends PApplet {
         this.position_scale = scale;
     }
 
-    void setCurrentTag(String tag, float position_error) {
-        currentTag = tag;
-        lapRate = 200;
-        lapErrorRate = Math.min(200*Math.abs(position_error)/15, 200);
-    }
+    //void setCurrentTag(String tag, float position_error) {
+    //    currentTag = tag;
+    //    lapRate = 200;
+    //    lapErrorRate = Math.min(200*Math.abs(position_error)/15, 200);
+    //}
 
-    void setCurrentTag(String tag) {
-        setCurrentTag(tag, 0);
-    }
+    //void setCurrentTag(String tag) {
+    //    setCurrentTag(tag, 0);
+    //}
 
     void setLastLap(float position) {
         lastLap = position;
@@ -194,6 +205,7 @@ public class Display extends PApplet {
         contextsContainer.add(contexts);
     }
 
+    /*
     void prepGraphics(PApplet app) {
         this.pg = app.createGraphics(app.width, app.height);
         this.pg.beginDraw();
@@ -210,7 +222,7 @@ public class Display extends PApplet {
         this.pg.text("Position Scale: ", text_offset, 80);
 
         this.pg.fill(color(204,204,0));
-        this.pg.rect(map_offset, 200, 300, 10);
+        this.pg.rect(map_offset, 200, 300, 300);
 
         this.pg.textSize(10);
         this.pg.fill(color(255, 0, 0));
@@ -223,7 +235,7 @@ public class Display extends PApplet {
         this.pg.text("lap", tag_offset+115, 510);
 
         this.pg.endDraw();
-    }
+    }*/
 
     private void drawValveStates(PApplet app) {
         for (int i = 0; i < 5; i++) {
@@ -291,15 +303,15 @@ public class Display extends PApplet {
 
     }
 
-    void update(PApplet app, float dy, float position, float time) {
+    void update(PApplet app, float dy, Point position, float time) {
         //float t = app.millis();
         //TODO: running more slow with performance hack
-        if (false) {
-            if (this.pg != null) {
-                app.image(this.pg, 0, 0);
-            }
-        }
-        else {
+        //if (false) {
+        //    if (this.pg != null) {
+        //        app.image(this.pg, 0, 0);
+        //    }
+        //}
+        //else {
         app.background(0);
 
         app.textSize(18);
@@ -307,13 +319,13 @@ public class Display extends PApplet {
         app.text("Lick Count: ", text_offset, 40);
         app.text("Reward Count: ", text_offset, 60);
         app.text("Time: ", text_offset, 100);
-        app.text("Lap Count: ", text_offset, 120);
+        app.text("Trial Count: ", text_offset, 120);
 
         app.textSize(14);
         app.text("Position Scale: ", text_offset, 80);
 
         app.fill(color(204,204,0));
-        app.rect(map_offset, 200, 300, 10);
+        app.rect(map_offset, 200, this.size[0], this.size[1]);
 
         app.textSize(10);
         app.fill(color(255, 0, 0));
@@ -326,7 +338,7 @@ public class Display extends PApplet {
         app.text("lap", tag_offset+115, 510);
 
 
-        }
+        //}
         app.textSize(18);
 
 
@@ -351,7 +363,7 @@ public class Display extends PApplet {
         app.fill(color(255, 255, 255));
         app.textSize(18);
         app.text(this.mouseName, 20, 40);
-        app.text((int)position, 75+text_offset, 20);
+        app.text((int)position.x + ", " + (int)position.y, 75+text_offset, 20);
         app.text(lickCount, 105+text_offset, 40);
 
         if (freeRewardCount > 0) {
@@ -361,7 +373,7 @@ public class Display extends PApplet {
             app.text(rewardCount, 135+text_offset, 60);
         }
         app.text((int)time + this.totalTime, 50+text_offset, 100);
-        app.text(lapCount, 100+text_offset, 120);
+        app.text(lapCount, 107+text_offset, 120);
 
         if (time > 0) {
             app.fill(color(204,0,0));
@@ -372,8 +384,8 @@ public class Display extends PApplet {
         app.textSize(14);
         app.text(String.format("%.4f", position_scale), 30+72+text_offset, 80);
 
-        app.fill(color(204,204,0));
-        app.rect(map_offset, 200, 300, 10);
+        //app.fill(color(204,204,0));
+        //app.rect(map_offset, 200, 300, 10);
         int yoffset = 140;
         for (int i=0; i < contextsContainer.size(); i++) {
             if (i == 3) {
@@ -395,10 +407,10 @@ public class Display extends PApplet {
             app.text(list.getId() + ": "  + list.getStatus(), text_offset,
                      yoffset+i*20);
 
-            float radius = list.displayRadius();
+            Point size = list.getSize();
             for (int j=0; j < list.size(); j++) {
-                app.rect(map_offset+list.getLocation(j)*displayScale-radius,
-                    200, 2*radius, 10);
+                app.rect(map_offset+list.getLocation(j).x*this.displayScale,
+                    200 + list.getLocation(j).y*this.displayScale, size.x * this.displayScale, size.y*this.displayScale);
             }
         }
 
@@ -407,7 +419,8 @@ public class Display extends PApplet {
         app.text(this.schedule, 60, 80);
 
         app.fill(color(204,0,0));
-        app.rect(map_offset+position*displayScale-5, 200, 10, 10);
+        app.rect(map_offset + position.x*displayScale-5,
+                 200 + position.y*displayScale-5, 10, 10);
 
         app.fill(color(255, 0, 0));
         app.rect(tag_offset,500,10,-positionRate);
