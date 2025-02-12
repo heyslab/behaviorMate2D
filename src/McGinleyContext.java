@@ -1,7 +1,7 @@
 import java.util.HashMap;
 import processing.data.JSONObject;
 import java.awt.Point;
-import java.util.concurrent.ThreadLocalRandom
+import java.util.concurrent.ThreadLocalRandom;
 
 public class McGinleyContext extends BasicContextList {
 
@@ -19,6 +19,7 @@ public class McGinleyContext extends BasicContextList {
     protected float Vr;
     protected float event_time;
     protected float c_vol;
+    protected float lambda0;
     // protected float o;
 
     protected int sensor;
@@ -32,7 +33,7 @@ public class McGinleyContext extends BasicContextList {
      */
     protected int[] display_color_suspended;
 
-    public DepletingContextList(JSONObject context_info, float track_length, String comm_id, int sensor, TreadmillController tc) {
+    public McGinleyContext(JSONObject context_info, float track_length, String comm_id, int sensor, TreadmillController tc) {
         super(context_info, track_length, comm_id);
 
         this.suspended = false;
@@ -47,10 +48,10 @@ public class McGinleyContext extends BasicContextList {
         this.tc = tc;
 
         JSONObject rate_params = context_info.getJSONObject("rate_params");
-        this.tau = rate_params.getFloat("tau", 0.8f);
-        this.r0 = rate_params.getFloat("r0", -2.6f);
-        this.V0 = rate_params.getFloat("V0", 0.3f);
-        this.Vr = rate_params.getFloat("Vr", -0.03f);
+        this.tau = rate_params.getFloat("tau", 5f);
+        this.r0 = rate_params.getFloat("r0", 2.5f);
+        this.V0 = rate_params.getFloat("V0", 0.1f);
+        this.Vr = rate_params.getFloat("Vr", 2f);
         // this.o = rate_params.getFloat("o", 0.0f);
         this.lambda0 = this.r0 / this.V0;
         this.c_vol = 0;
@@ -64,7 +65,7 @@ public class McGinleyContext extends BasicContextList {
     }
 
     public float expRNG(float rate) {
-        return -Math.log(1 - ThreadLocalRandom.current().nextFloat()) / rate;
+        return - ((float) Math.log(1 - ThreadLocalRandom.current().nextFloat())) / rate;
     }
 
     /**
@@ -120,7 +121,7 @@ public class McGinleyContext extends BasicContextList {
 
         if (activate) {
             this.t = time - this.t_start;
-            this.rate_func = this.lambda0 * Math.exp(-this.t / this.tau);
+            this.rate_func = this.lambda0 * (float) Math.exp(-this.t / this.tau);
             this.status = Integer.toString(this.reward_count);
 
             
@@ -147,7 +148,7 @@ public class McGinleyContext extends BasicContextList {
 
         } else if ((t_start != -1) && (!activate)) {
             this.t_start = -1;
-            this.event_time = -1
+            this.event_time = -1;
             this.c_vol = 0;
             this.reward_count = 0;
             this.getContext(active_idx).disable();

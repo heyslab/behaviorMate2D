@@ -38,6 +38,10 @@ public final class ContextsFactory {
         } else if (class_name.equals("deterministic_depleting")) {
             cl = new DeterministicDepletingContextList(
                 context_info, track_length, controller, tc);
+        } else if (class_name.equals("mcginley")) {
+            cl = new McGinleyContext(
+                context_info, track_length, controller,
+                context_info.getInt("sensor"), tc);
         } else {
             cl = new BasicContextList(context_info, track_length, controller);
         }
