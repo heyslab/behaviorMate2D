@@ -111,6 +111,7 @@ public class McGinleyContext extends BasicContextList {
         int active_idx = this.activeIdx();
         boolean activate = super.check(position, time, lap, lick_count,
                                        sensor_counts, msg_buffer);
+        // System.out.println("activated: "+ activate);
         if (activate && (t_start == -1)) {
             this.t_start = time;
             this.sendMessage(this.startString);
@@ -123,7 +124,6 @@ public class McGinleyContext extends BasicContextList {
             this.t = time - this.t_start;
             this.rate_func = this.lambda0 * (float) Math.exp(-this.t / this.tau);
             this.status = Integer.toString(this.reward_count);
-
             
             if (this.event_time == -1) {
                 float dt = (float) expRNG(this.rate_func);
@@ -133,9 +133,8 @@ public class McGinleyContext extends BasicContextList {
                 float dt = (float) expRNG(this.rate_func);
                 this.c_vol = this.c_vol + this.V0;
                 this.event_time = this.t + dt;
-
             }
-
+            
             if ((this.sensor_count != sensor_counts.get(this.sensor)) &&
                 ((this.c_vol >= this.Vr))) {
                 this.c_vol = 0;
@@ -143,7 +142,7 @@ public class McGinleyContext extends BasicContextList {
                 this.sendMessage(this.startString);
                 this.reward_count++;
                 
-                }
+            }
             return true;
 
         } else if ((t_start != -1) && (!activate)) {
