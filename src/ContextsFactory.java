@@ -42,6 +42,14 @@ public final class ContextsFactory {
             cl = new McGinleyContext(
                 context_info, track_length, controller,
                 context_info.getInt("sensor"), tc);
+        } else if (class_name.equals("johntext")) {
+            cl = new Johntext(
+                context_info, track_length, controller,
+                context_info.getInt("sensor"), tc);
+        } else if (class_name.equals("test")) {
+            cl = new TestContext(
+                context_info, track_length, controller,
+                context_info.getInt("sensor"), tc);
         } else {
             cl = new BasicContextList(context_info, track_length, controller);
         }
