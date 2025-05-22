@@ -11,6 +11,7 @@ public class McGinleyContext extends BasicContextList {
     private boolean suspended;
 
     protected float t_start;
+    protected float t_lick_start;
     protected float t;
     protected float rate_func;
     protected float tau;
@@ -20,6 +21,14 @@ public class McGinleyContext extends BasicContextList {
     protected float event_time;
     protected float c_vol;
     protected float lambda0;
+    protected String speaker_start;
+    protected int speaker_pin;
+    protected int speaker_freq;
+    protected String reward_start;
+    protected int reward_pin;
+    protected int reward_duration;
+    protected float lick_window;
+    protected float t_last_lick;
     // protected float o;
 
     protected int sensor;
@@ -38,6 +47,7 @@ public class McGinleyContext extends BasicContextList {
 
         this.suspended = false;
         this.t_start = -1;
+        this.t_lick_start = -1;
         this.t = -1;
         // this.p_reward = -1f;
         this.sensor = sensor;
@@ -46,6 +56,7 @@ public class McGinleyContext extends BasicContextList {
 
         this.count_stops = context_info.getBoolean("count_stops", false);
         this.tc = tc;
+        this.t_last_lick = 0;
 
         JSONObject rate_params = context_info.getJSONObject("rate_params");
         this.tau = rate_params.getFloat("tau", 5f);
@@ -55,6 +66,43 @@ public class McGinleyContext extends BasicContextList {
         // this.o = rate_params.getFloat("o", 0.0f);
         this.lambda0 = this.r0 / this.V0;
         this.c_vol = 0;
+
+        this.speaker_pin = context_info.getInt("speaker_pin");
+        this.reward_pin = context_info.getInt("reward_pin");
+        this.reward_duration = context_info.getInt("reward_duration");
+        int speaker_duration = context_info.getInt("speaker_duration", 500);
+        this.speaker_freq = context_info.getInt("speaker_freq");
+
+        this.speaker_start = tc.open_valve_json(speaker_pin, speaker_duration, speaker_freq).toString();
+        this.reward_start = tc.open_valve_json(reward_pin, reward_duration).toString();
+
+        this.lick_window = context_info.getFloat("lick_window");
+    }
+
+    public void sendCreateMessages() {
+        super.sendCreateMessages();
+        JSONObject speaker = tc.setup_valve_json(this.speaker_pin, this.speaker_freq);
+        JSONObject reward = tc.setup_valve_json(this.reward_pin);
+        this.comm.sendMessage(speaker.toString());
+        this.comm.sendMessage(reward.toString());
+    }
+
+    public void reset() {
+        super.reset();
+    }
+
+    public void end() {
+        this.t_start = -1;
+        this.t_lick_start = -1;
+        this.event_time = -1;
+        this.c_vol = 0;
+        this.reward_count = 0;
+        this.reset();
+        super.end();
+    }
+
+    public void trialStart(JSONObject[] msg_buffer) {
+        super.trialStart(msg_buffer);
     }
 
     public void stop(float time, JSONObject[] msg_buffer) {
@@ -109,19 +157,41 @@ public class McGinleyContext extends BasicContextList {
         // If the context list is not suspended call the check method for the default ContextList
         // behavior.
         int active_idx = this.activeIdx();
-        boolean activate = super.check(position, time, lap, lick_count,
+        boolean entered = super.check(position, time, lap, lick_count,
                                        sensor_counts, msg_buffer);
-        // System.out.println("activated: "+ activate);
-        if (activate && (t_start == -1)) {
-            this.t_start = time;
-            this.sendMessage(this.startString);
-            this.sensor_count = sensor_counts.get(this.sensor);
-            this.reward_count++;
-            return true;
-        }
 
-        if (activate) {
-            this.t = time - this.t_start;
+        
+        boolean licked = sensor_counts.get(this.sensor) != this.sensor_count;
+        System.out.println("lick window? "+((time - this.t_last_lick) > this.lick_window));
+
+        if (entered) {
+
+            if (t_start == -1) {
+                this.sendMessage(this.speaker_start);
+                this.t_start = time;
+            }
+            if (licked) {
+                this.t_last_lick = time;
+            }
+
+            // if ((time - t_last_lick) > this.lick_window) {
+            //     return false;
+            // }
+
+            if ((licked) && (t_lick_start == -1)){
+
+                this.t_lick_start = time;
+                this.sendMessage(this.reward_start);
+                this.sensor_count = sensor_counts.get(this.sensor);
+                this.reward_count++;
+                return true;
+            }
+            
+            if (this.t_lick_start == -1) {
+                return false; // Don't compute rewards until first lick
+            }
+
+            this.t = time - this.t_lick_start;
             this.rate_func = this.lambda0 * (float) Math.exp(-this.t / this.tau);
             this.status = Integer.toString(this.reward_count);
             
@@ -135,18 +205,18 @@ public class McGinleyContext extends BasicContextList {
                 this.event_time = this.t + dt;
             }
             
-            if ((this.sensor_count != sensor_counts.get(this.sensor)) &&
-                ((this.c_vol >= this.Vr))) {
+            if (licked && (this.c_vol >= this.Vr) && ((time - t_last_lick) < this.lick_window)) {
                 this.c_vol = 0;
-                this.sensor_count = sensor_counts.get(this.sensor);
-                this.sendMessage(this.startString);
+                this.sendMessage(this.reward_start);
                 this.reward_count++;
-                
-            }
+            } 
+
+            this.sensor_count = sensor_counts.get(this.sensor);
             return true;
 
-        } else if ((t_start != -1) && (!activate)) {
+        } else if ((t_lick_start != -1) && (!entered)) {
             this.t_start = -1;
+            this.t_lick_start = -1;
             this.event_time = -1;
             this.c_vol = 0;
             this.reward_count = 0;
@@ -156,9 +226,8 @@ public class McGinleyContext extends BasicContextList {
             }
         }
 
-
-
         this.sensor_count = sensor_counts.get(this.sensor);
         return false;
+        
     }
 }
