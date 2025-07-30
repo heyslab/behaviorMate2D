@@ -3,7 +3,7 @@ import processing.data.JSONObject;
 import java.awt.Point;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class Johntext extends BasicContextList {
+public class TestContext extends BasicContextList {
 
     /**
      * Store whether the context is currently active for this lap, or suspended.
@@ -14,8 +14,7 @@ public class Johntext extends BasicContextList {
     protected float t_lick_start;
     protected float t;
     protected float rate_func;
-    protected float tauS;
-    protected float tauD;
+    protected float tau;
     protected float r0;
     protected float V0;
     protected float Vr;
@@ -28,17 +27,15 @@ public class Johntext extends BasicContextList {
     protected String reward_start;
     protected int reward_pin;
     protected int reward_duration;
-    protected float lick_window;
-    protected float t_last_lick;
-    protected Point prevPosition = null;
-    protected float prevTime = -1;
-    protected float speed_thresh;
-    
+    protected int temp_lick_count;
+    boolean adaptive;
+    protected int t_constant;
     // protected float o;
 
     protected int sensor;
     protected int sensor_count;
     protected int reward_count;
+    protected int operant_rate;
     protected boolean count_stops;
 
     protected TreadmillController tc;
@@ -47,31 +44,29 @@ public class Johntext extends BasicContextList {
      */
     protected int[] display_color_suspended;
 
-    public Johntext(JSONObject context_info, float track_length, String comm_id, int sensor, TreadmillController tc) {
+    public TestContext(JSONObject context_info, float track_length, String comm_id, int sensor, TreadmillController tc) {
         super(context_info, track_length, comm_id);
 
-        this.speed_thresh = context_info.getFloat("speed_thresh", 200f);
-
+        this.adaptive = Math.random() >= 0.5;
+        this.t_constant = 5 + (int)(Math.random() * 11); // generate time between 5 and 15 seconds
         this.suspended = false;
         this.t_start = -1;
         this.t_lick_start = -1;
         this.t = -1;
-        // this.p_reward = -1f;
+        this.temp_lick_count = 0;
         this.sensor = sensor;
         this.reward_count = 0;
         this.event_time = -1;
 
         this.count_stops = context_info.getBoolean("count_stops", false);
         this.tc = tc;
-        this.t_last_lick = 0;
 
         JSONObject rate_params = context_info.getJSONObject("rate_params");
-        this.tauD = rate_params.getJSONArray("tau").getFloat(0);
-        this.tauS = rate_params.getJSONArray("tau").getFloat(1);
-        
+        this.tau = rate_params.getFloat("tau", 5f);
         this.r0 = rate_params.getFloat("r0", 2.5f);
         this.V0 = rate_params.getFloat("V0", 0.1f);
         this.Vr = rate_params.getFloat("Vr", 2f);
+        this.operant_rate = context_info.getInt("operant_rate");
         // this.o = rate_params.getFloat("o", 0.0f);
         this.lambda0 = this.r0 / this.V0;
         this.c_vol = 0;
@@ -84,8 +79,6 @@ public class Johntext extends BasicContextList {
 
         this.speaker_start = tc.open_valve_json(speaker_pin, speaker_duration, speaker_freq).toString();
         this.reward_start = tc.open_valve_json(reward_pin, reward_duration).toString();
-
-        this.lick_window = context_info.getFloat("lick_window", 2f);
     }
 
     public void sendCreateMessages() {
@@ -165,108 +158,139 @@ public class Johntext extends BasicContextList {
 
         // If the context list is not suspended call the check method for the default ContextList
         // behavior.
-
-        float speed = 0;
-
-        if (this.prevPosition != null && this.prevTime >= 0) {
-            double dx = position.getX() - this.prevPosition.getX();
-            double dy = position.getY() - this.prevPosition.getY();
-            float dt = time - this.prevTime;
-            
-            if (dt > 0) {
-                speed = (float)(Math.sqrt(dx * dx + dy * dy) / dt) / 10;
-            }
-        }
-           
-        this.prevPosition = new Point(position);
-        this.prevTime = time;
- 
-
-        float tau = this.tauD;
-        
         int active_idx = this.activeIdx();
-        
         boolean entered = super.check(position, time, lap, lick_count,
                                        sensor_counts, msg_buffer);
 
+        
         boolean licked = sensor_counts.get(this.sensor) != this.sensor_count;
-        boolean lick_off = (time - this.t_last_lick) > this.lick_window;
 
-        if (entered) {
-            int block = ((lap - 1) / 30) + 1;
-                if (block % 2 == 0) {
-                    tau = this.tauS;
+        if (this.adaptive) {
+
+            if (entered) {
+                
+                if (t_start == -1) {
+                    this.sendMessage(this.speaker_start);
+                    this.t_start = time;
+                }
+
+                if ((licked) && (t_lick_start == -1)){
+
+                    this.t_lick_start = time;
+                    this.sendMessage(this.reward_start);
+                    this.sensor_count = sensor_counts.get(this.sensor);
+                    this.reward_count++;
+                    return true;
                 }
                 
+                if (this.t_lick_start == -1) {
+                    return false; // Don't compute rewards until first lick
+                }
 
-            if (t_start == -1) {
-                this.t_start = time;
-            }
+                this.t = time - this.t_lick_start;
+                this.rate_func = this.lambda0 * (float) Math.exp(-this.t / this.tau);
+                this.status = Integer.toString(this.reward_count);
+                
+                if (this.event_time == -1) {
+                    float dt = (float) expRNG(this.rate_func);
+                    this.event_time = this.t + dt;
+                }
+                else if (this.t > this.event_time) {
+                    float dt = (float) expRNG(this.rate_func);
+                    this.c_vol = this.c_vol + this.V0;
+                    this.event_time = this.t + dt;
+                }
+                
+                if (licked &&
+                    (this.c_vol >= this.Vr)) {
+                    this.c_vol = 0;
+                    this.sendMessage(this.reward_start);
+                    this.reward_count++;
+                } 
 
-            if (licked) {
-                this.t_last_lick = time;
-            }
-            
-            // START TRIAL
-            if ((licked) && (t_lick_start == -1)){
-                this.tc.increment_trial();
-
-                this.log_json.getJSONObject("context").setInt("block", block);
-                this.log_json.getJSONObject("context").setFloat("tau", tau);
-                this.log_json.getJSONObject("context").setInt("lap", lap);
-                msg_buffer[0] = this.log_json;
-
-                System.out.println("tau: " + tau);
-                System.out.println("block: " + block);
-                System.out.println("lap: " + lap);
-
-                this.t_lick_start = time;
-                this.sendMessage(this.reward_start);
                 this.sensor_count = sensor_counts.get(this.sensor);
-                this.reward_count++;
+                return true;
+
+            } else if ((t_lick_start != -1) && (!entered)) {
+                    this.t_start = -1;
+                    this.t_lick_start = -1;
+                    this.temp_lick_count = 0;
+                    this.event_time = -1;
+                    this.c_vol = 0;
+                    this.reward_count = 0;
+                    this.getContext(active_idx).disable();
+                    if (this.count_stops) {
+                        this.tc.increment_trial();
+                        
+                    }
+                    JSONObject config_msg = new JSONObject();
+                    config_msg.setString("id", this.id);
+                    config_msg.setBoolean("adaptive", this.adaptive);
+                    msg_buffer[0] = config_msg;
+                    this.adaptive = Math.random() >= 0.5;
+                    this.t_constant = 5 + (int)(Math.random() * 11); 
+                    
+            }
+        }
+
+        else {
+            if (entered) {
+                
+                if (t_start == -1) {
+                    this.sendMessage(this.speaker_start);
+                    this.t_start = time;
+                }
+                if (licked) {
+                    this.temp_lick_count ++;
+
+                    if (t_lick_start == -1) {
+                        this.t_lick_start = time;
+                        this.sendMessage(this.reward_start);
+                        this.sensor_count = sensor_counts.get(this.sensor);
+                        this.reward_count++;
+                        return true;
+                    }
+                    
+                
+                    this.t = time - this.t_lick_start;
+                    
+
+                    if (this.t <= this.t_constant){
+                        if ((this.temp_lick_count % this.operant_rate) == 0) {
+
+                            this.sendMessage(this.reward_start);
+                            this.sensor_count = sensor_counts.get(this.sensor);
+                            this.reward_count++;
+                            
+                        }
+                    }
+                    this.status = Integer.toString(this.reward_count);
+                }
+                // if (this.t_lick_start == -1) {
+                //         return false; // Don't compute rewards until first lick
+                //     }
+                this.sensor_count = sensor_counts.get(this.sensor);
                 return true;
             }
-            
-            if (this.t_lick_start == -1) {
-                return false; // Don't compute rewards until first lick
-            }
 
-            this.t = time - this.t_lick_start;
-            this.rate_func = this.lambda0 * (float) Math.exp(-this.t / tau);
-            this.status = Integer.toString(this.reward_count);
-            
-            if (this.event_time == -1) {
-                float dt = (float) expRNG(this.rate_func);
-                this.event_time = this.t + dt;
+            else if ((t_lick_start != -1) && (!entered)) {
+                    this.t_start = -1;
+                    this.t_lick_start = -1;
+                    this.temp_lick_count = 0;
+                    this.reward_count = 0;
+                    this.getContext(active_idx).disable();
+                    if (this.count_stops) {
+                        this.tc.increment_trial();
+                    }
+                    JSONObject config_msg = new JSONObject();
+                    config_msg.setString("id", this.id);
+                    config_msg.setBoolean("adaptive", this.adaptive);
+                    msg_buffer[0] = config_msg;
+                    this.adaptive = Math.random() >= 0.5;
+                    this.t_constant = 5 + (int)(Math.random() * 11); 
             }
-            else if (this.t > this.event_time) {
-                float dt = (float) expRNG(this.rate_func);
-                this.c_vol = this.c_vol + this.V0;
-                this.event_time = this.t + dt;
-            }
-            
-            if (licked && (this.c_vol >= this.Vr)) {
-                this.c_vol = 0;
-                this.sendMessage(this.reward_start);
-                this.reward_count++;
-            } 
-            
-            this.sensor_count = sensor_counts.get(this.sensor);
-            return true;
         }
-        if ((t_lick_start != -1) && (speed > speed_thresh)) {
-                this.t_start = -1;
-                this.t_lick_start = -1;
-                this.event_time = -1;
-                this.c_vol = 0;
-                this.reward_count = 0;
-                if (active_idx >= 0) {
-                this.getContext(active_idx).disable();
-                }                
-                return false;
-            } 
         this.sensor_count = sensor_counts.get(this.sensor);
         return false;
-        
     }
 }

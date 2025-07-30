@@ -964,11 +964,22 @@ public class TreadmillController extends PApplet {
         settings_json.setJSONObject("reward", reward_id);
 
         if (!reward_info.isNull("pin")) {
-            reward_valve = reward_info.getInt("pin");
-            reward_valves.add(reward_info.getInt("pin"));
-            JSONArray context_valves = new JSONArray();
-            context_valves.append(reward_valve);
-            reward_info.setJSONArray("valves", context_valves);
+            try{
+                JSONArray reward_valves_array = reward_info.getJSONArray("pin");
+                reward_info.setJSONArray("valves", reward_valves_array);
+                this.reward_valves = new ArrayList<Integer>();
+                for (int j=0; j < reward_valves_array.size(); j++) {
+                    this.reward_valves.add(reward_valves_array.getInt(j));
+            
+                } 
+            }
+            catch (RuntimeException e) {
+                reward_valve = reward_info.getInt("pin");
+                reward_valves.add(reward_info.getInt("pin"));
+                JSONArray context_valves = new JSONArray();
+                context_valves.append(reward_valve);
+                reward_info.setJSONArray("valves", context_valves);
+            }
         }
 
         if (!reward_info.isNull("drop_size")) {
