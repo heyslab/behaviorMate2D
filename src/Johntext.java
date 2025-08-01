@@ -33,6 +33,8 @@ public class Johntext extends BasicContextList {
     protected Point prevPosition = null;
     protected float prevTime = -1;
     protected float speed_thresh;
+    protected int last_patch = -1;
+    protected boolean last_patch_licked = false;
     
     // protected float o;
 
@@ -166,21 +168,34 @@ public class Johntext extends BasicContextList {
         // If the context list is not suspended call the check method for the default ContextList
         // behavior.
 
+        // speed calculation
         float speed = 0;
-
+        float x = (float) position.getX();
+        float y = (float) position.getY();       
         if (this.prevPosition != null && this.prevTime >= 0) {
-            double dx = position.getX() - this.prevPosition.getX();
-            double dy = position.getY() - this.prevPosition.getY();
+            double dx = x - this.prevPosition.getX();
+            double dy = y - this.prevPosition.getY();
             float dt = time - this.prevTime;
             
             if (dt > 0) {
                 speed = (float)(Math.sqrt(dx * dx + dy * dy) / dt) / 10;
             }
+            System.out.println(speed);
         }
-           
         this.prevPosition = new Point(position);
         this.prevTime = time;
- 
+
+        // determine patch
+        // if ((x > 380) && (y > 510)) {
+        //     this.patch = 2;
+        // }
+        // else if ((x > 380) && (y <=510)) {
+        //     this.patch = 1;
+        // }
+        // else {
+        //     this.patch = 0;
+        // }
+
 
         float tau = this.tauD;
         
@@ -199,9 +214,9 @@ public class Johntext extends BasicContextList {
                 }
                 
 
-            if (t_start == -1) {
-                this.t_start = time;
-            }
+            // if (t_start == -1) {
+            //     this.t_start = time;
+            // }
 
             if (licked) {
                 this.t_last_lick = time;
@@ -216,9 +231,9 @@ public class Johntext extends BasicContextList {
                 this.log_json.getJSONObject("context").setInt("lap", lap);
                 msg_buffer[0] = this.log_json;
 
-                System.out.println("tau: " + tau);
-                System.out.println("block: " + block);
-                System.out.println("lap: " + lap);
+                // System.out.println("tau: " + tau);
+                // System.out.println("block: " + block);
+                // System.out.println("lap: " + lap);
 
                 this.t_lick_start = time;
                 this.sendMessage(this.reward_start);
