@@ -37,6 +37,7 @@ public class Display extends PApplet {
     private String totalTime;
     private String bottom_message;
     private float[] size;
+    private int bg_color;
 
     public Display() {
         lickRate = 0;
@@ -62,6 +63,7 @@ public class Display extends PApplet {
         this.sensor_states = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
         this.sensor_ids = new int[] { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
         contextsContainer = new ArrayList<ContextList>();
+        this.bg_color = color(100, 100, 100);
 
         this.schedule = "";
         this.totalTime = "";
@@ -324,7 +326,7 @@ public class Display extends PApplet {
         app.textSize(14);
         app.text("Position Scale: ", text_offset, 80);
 
-        app.fill(color(204,204,0));
+        app.fill(this.bg_color);
         app.rect(map_offset, 200, this.size[0], this.size[1]);
 
         app.textSize(10);

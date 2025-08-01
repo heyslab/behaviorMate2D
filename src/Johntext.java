@@ -22,22 +22,12 @@ public class Johntext extends BasicContextList {
     protected float event_time;
     protected float c_vol;
     protected float lambda0;
-    protected String speaker_start;
-    protected int speaker_pin;
-    protected int speaker_freq;
     protected String reward_start;
     protected int reward_pin;
     protected int reward_duration;
     protected float lick_window;
     protected float t_last_lick;
-    protected Point prevPosition = null;
-    protected float prevTime = -1;
-    protected float speed_thresh;
-    protected int last_patch = -1;
-    protected boolean last_patch_licked = false;
     
-    // protected float o;
-
     protected int sensor;
     protected int sensor_count;
     protected int reward_count;
@@ -51,8 +41,6 @@ public class Johntext extends BasicContextList {
 
     public Johntext(JSONObject context_info, float track_length, String comm_id, int sensor, TreadmillController tc) {
         super(context_info, track_length, comm_id);
-
-        this.speed_thresh = context_info.getFloat("speed_thresh", 200f);
 
         this.suspended = false;
         this.t_start = -1;
@@ -78,13 +66,8 @@ public class Johntext extends BasicContextList {
         this.lambda0 = this.r0 / this.V0;
         this.c_vol = 0;
 
-        this.speaker_pin = context_info.getInt("speaker_pin");
         this.reward_pin = context_info.getInt("reward_pin");
         this.reward_duration = context_info.getInt("reward_duration");
-        int speaker_duration = context_info.getInt("speaker_duration", 500);
-        this.speaker_freq = context_info.getInt("speaker_freq");
-
-        this.speaker_start = tc.open_valve_json(speaker_pin, speaker_duration, speaker_freq).toString();
         this.reward_start = tc.open_valve_json(reward_pin, reward_duration).toString();
 
         this.lick_window = context_info.getFloat("lick_window", 2f);
@@ -92,9 +75,7 @@ public class Johntext extends BasicContextList {
 
     public void sendCreateMessages() {
         super.sendCreateMessages();
-        JSONObject speaker = tc.setup_valve_json(this.speaker_pin, this.speaker_freq);
         JSONObject reward = tc.setup_valve_json(this.reward_pin);
-        this.comm.sendMessage(speaker.toString());
         this.comm.sendMessage(reward.toString());
     }
 
@@ -168,34 +149,6 @@ public class Johntext extends BasicContextList {
         // If the context list is not suspended call the check method for the default ContextList
         // behavior.
 
-        // speed calculation
-        float speed = 0;
-        float x = (float) position.getX();
-        float y = (float) position.getY();       
-        if (this.prevPosition != null && this.prevTime >= 0) {
-            double dx = x - this.prevPosition.getX();
-            double dy = y - this.prevPosition.getY();
-            float dt = time - this.prevTime;
-            
-            if (dt > 0) {
-                speed = (float)(Math.sqrt(dx * dx + dy * dy) / dt) / 10;
-            }
-            System.out.println(speed);
-        }
-        this.prevPosition = new Point(position);
-        this.prevTime = time;
-
-        // determine patch
-        // if ((x > 380) && (y > 510)) {
-        //     this.patch = 2;
-        // }
-        // else if ((x > 380) && (y <=510)) {
-        //     this.patch = 1;
-        // }
-        // else {
-        //     this.patch = 0;
-        // }
-
 
         float tau = this.tauD;
         
@@ -213,14 +166,6 @@ public class Johntext extends BasicContextList {
                     tau = this.tauS;
                 }
                 
-
-            // if (t_start == -1) {
-            //     this.t_start = time;
-            // }
-
-            if (licked) {
-                this.t_last_lick = time;
-            }
             
             // START TRIAL
             if ((licked) && (t_lick_start == -1)){
@@ -233,7 +178,6 @@ public class Johntext extends BasicContextList {
 
                 // System.out.println("tau: " + tau);
                 // System.out.println("block: " + block);
-                // System.out.println("lap: " + lap);
 
                 this.t_lick_start = time;
                 this.sendMessage(this.reward_start);
@@ -246,6 +190,7 @@ public class Johntext extends BasicContextList {
                 return false; // Don't compute rewards until first lick
             }
 
+            // Reward function
             this.t = time - this.t_lick_start;
             this.rate_func = this.lambda0 * (float) Math.exp(-this.t / tau);
             this.status = Integer.toString(this.reward_count);
@@ -269,7 +214,9 @@ public class Johntext extends BasicContextList {
             this.sensor_count = sensor_counts.get(this.sensor);
             return true;
         }
-        if ((t_lick_start != -1) && (speed > speed_thresh)) {
+
+        // if licked and left patch, disable context
+        if ((t_lick_start != -1) && (!entered)) {
                 this.t_start = -1;
                 this.t_lick_start = -1;
                 this.event_time = -1;
