@@ -223,7 +223,7 @@ public class Johntext extends BasicContextList {
                 this.c_vol = 0;
                 this.reward_count = 0;
                 if (active_idx >= 0) {
-                this.getContext(active_idx).disable();
+                    this.getContext(active_idx).disable();
                 }                
                 return false;
             } 

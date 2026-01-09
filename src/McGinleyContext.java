@@ -166,10 +166,7 @@ public class McGinleyContext extends BasicContextList {
 
         if (entered) {
 
-            if (t_start == -1) {
-                this.sendMessage(this.speaker_start);
-                this.t_start = time;
-            }
+            
             if (licked) {
                 this.t_last_lick = time;
             }
@@ -179,6 +176,10 @@ public class McGinleyContext extends BasicContextList {
             // }
 
             if ((licked) && (t_lick_start == -1)){
+                this.tc.increment_trial();
+                this.log_json.getJSONObject("context").setFloat("tau", tau);
+                this.log_json.getJSONObject("context").setInt("lap", lap);
+                msg_buffer[0] = this.log_json;
 
                 this.t_lick_start = time;
                 this.sendMessage(this.reward_start);
@@ -205,7 +206,7 @@ public class McGinleyContext extends BasicContextList {
                 this.event_time = this.t + dt;
             }
             
-            if (licked && (this.c_vol >= this.Vr) && ((time - t_last_lick) < this.lick_window)) {
+            if (licked && (this.c_vol >= this.Vr)) {
                 this.c_vol = 0;
                 this.sendMessage(this.reward_start);
                 this.reward_count++;
@@ -220,10 +221,10 @@ public class McGinleyContext extends BasicContextList {
             this.event_time = -1;
             this.c_vol = 0;
             this.reward_count = 0;
-            this.getContext(active_idx).disable();
-            if (this.count_stops) {
-                this.tc.increment_trial();
-            }
+            if (active_idx >= 0) {
+                this.getContext(active_idx).disable();
+            }  
+            return false;
         }
 
         this.sensor_count = sensor_counts.get(this.sensor);

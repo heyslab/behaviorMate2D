@@ -1,0 +1,442 @@
+// C++ style '//' comments are permitted to comment out the end of lines
+// but block style i.e. '/*' will not work
+{
+    "fixed": { // name for each profile of in this setting file
+        "controllers": {
+            "behavior_controller": {
+                // "ip": "192.168.1.101",
+                "ip": "127.0.0.1", // can alternatively use localhost for testing
+                "send_port": 5000,
+                //"send_port": 4096,
+                "receive_port": 5000
+            },
+            "position_controller": {
+                "ip": "192.168.1.102",
+                "send_port": 5005,
+                "receive_port": 5005
+            }
+        },
+        "reward": {"id": ["patch_1", "patch_2"]},
+        "contexts": [
+            {
+                "id": "patch_2",
+                "class": "fixed",
+                "type": "operant",
+                "operant_rate": 15,
+                "count_stops": true,
+                "sensor": 2,
+                "locations": [[0, 0]],
+                "valves": [50],
+                "durations": [50],
+                "size":  [380, 510],
+                "initial_open": true,
+                "display_color": [104, 204, 104],
+                "max_duration": 6,
+                "decorators": [
+                    {
+                        "class": "lickstart_context"
+                    },
+                    {
+                       "class": "exit_trigger",
+                       "joint_id": "patch_1"
+                    }
+                ]
+            },
+            {
+                "id": "patch_1",
+                "class": "fixed",
+                "type": "operant",
+                "operant_rate": 15,
+                "count_stops": true,
+                "sensor": 0,
+                "locations": [[0, 510]],
+                "valves": [52],
+                "durations": [50],
+                "size":  [380, 510],
+                "initial_open": true,
+                "display_color": [104, 204, 204],
+                "max_duration": 6,
+                "decorators": [
+                    {
+                        "class": "lickstart_context"
+                    },
+                    {
+                       "class": "exit_trigger",
+                       "joint_id": "patch_2"
+                    }
+                ]
+            }
+        ],
+        "sensors": [
+            {
+                "type": "analog_lick",
+                "pin": 0,
+                "lick_threshold": 2,
+                "lick_stop_threshold": 1.5,
+                //"buffered_read": true,
+                //"debug": true
+            },
+            {
+                "type": "analog_lick",
+                "pin": 2,
+                "lick_threshold": 2,
+                "lick_stop_threshold": 1.5,
+                //"buffered_read": true,
+                //"debug": true
+            }
+        ],
+        "trial_length": 2400, // duration (in s) of the trial.
+        "comment_keys": {
+            "g": "grooming"
+        },
+        "position_scale": 1,
+        "environment_size": [760, 1020],
+        "sync_pin":  12
+    },
+
+    "mcginley": { // name for each profile of in this setting file
+        "controllers": {
+            "behavior_controller": {
+                "ip": "192.168.1.101",
+                //"ip": "127.0.0.1", // can alternatively use localhost for testing
+                "send_port": 5000,
+                //"send_port": 4096,
+                "receive_port": 5000
+            },
+            "position_controller": {
+                "ip": "192.168.1.102",
+                "send_port": 5005,
+                "receive_port": 5005
+            }
+        },
+        "reward": {"pin": [52, 50], "size": [0, 0], "locations": [[0, 0]]},
+        "contexts": [
+            {
+                "id": "patch_2",
+                "class": "mcginley",
+                "reward_pin": 50,
+                "reward_duration": 7,
+                "speaker_pin": 47,
+                "speaker_duration": 0,
+                "speaker_freq": 4000,
+                "rate_params": {"tau": 5, "r0": 2.5, "V0": 0.2, "Vr": 2},
+                "sensor": 2,
+                "locations": [[0, 0]],
+                // "valves": [50],
+                // "durations": [5],
+                "size":  [380, 510],
+                "count_stops": true,
+                "initial_open": true,
+                "display_color": [104, 204, 104],
+                "max_duration": 30,
+                "lick_window": 2,
+                "decorators": [
+
+                    {
+                    "class": "exit_trigger",
+                    "joint_id": "patch_1"
+                    }
+                ]
+            },
+            {
+                "id": "syncLED",
+                "type": "pulsed",
+                "interval": 10000,
+                "durations": [500, 500],
+                "valves": [25, 23], 
+                "size": [760, 1020],
+                "locations": [[0, 0]]
+            },
+            {
+                "id": "patch_1",
+                "class": "mcginley",
+                "reward_pin": 52,
+                "reward_duration": 7,
+                "speaker_pin": 51,
+                "speaker_duration": 0,
+                "speaker_freq": 4000,
+                "rate_params": {"tau": 10, "r0": 2.5, "V0": 0.2, "Vr": 2},
+                "sensor": 0,
+                "locations": [[0, 510]],
+                // "valves": [52],
+                // "durations": [5],
+                "size":  [380, 510],
+                "count_stops": true,
+                "initial_open": true,
+                "display_color": [104, 204, 204],
+                "max_duration": 30,
+                "lick_window": 2,
+                "decorators": [
+
+                    {
+                    "class": "exit_trigger",
+                    "joint_id": "patch_2"
+                    }
+                ]
+            }
+            
+        ],
+        "sensors": [
+            {
+                "type": "analog_lick",
+                "pin": 2,
+                "lick_threshold": 2,
+                "lick_stop_threshold": 1.8,
+                //"buffered_read": true,
+                //"debug": true
+            },
+            {
+                "type": "analog_lick",
+                "pin": 0,
+                "lick_threshold": 2,
+                "lick_stop_threshold": 1.5,
+                //"buffered_read": true,
+                //"debug": true
+            }
+        ],
+        "trial_length": 2400, // duration (in s) of the trial.
+        "comment_keys": {
+            "g": "grooming"
+        },
+        "trial_attrs": {
+            "fields": [
+                {   
+                    "type": "String",
+                    "key": "wall_config"
+                }
+            ]
+        },
+        "position_scale": 1,
+        "environment_size": [760, 1020],
+        "sync_pin":  12
+    },
+    "test": { // name for each profile of in this setting file
+        "controllers": {
+            "behavior_controller": {
+                "ip": "192.168.1.101",
+                //"ip": "127.0.0.1", // can alternatively use localhost for testing
+                "send_port": 5000,
+                //"send_port": 4096,
+                "receive_port": 5000
+            },
+            "position_controller": {
+                "ip": "192.168.1.102",
+                "send_port": 5005,
+                "receive_port": 5005
+            }
+        },
+        "reward": {"pin": [52, 50], "size": [0, 0], "locations": [[0, 0]]},
+        "contexts": [
+            {
+                "id": "patch_2",
+                "class": "test",
+                "operant_rate": 10,
+                "reward_pin": 50,
+                "reward_duration": 5,
+                "speaker_pin": 47,
+                "speaker_duration": 0,
+                "speaker_freq": 4000,
+                "rate_params": {"tau": 15, "r0": 2.5, "rsi": 0.05, "Vr": 2},
+                "sensor": 2,
+                "locations": [[0, 0]],
+                // "valves": [50],
+                // "durations": [5],
+                "size":  [38, 51],
+                "count_stops": true,
+                "initial_open": true,
+                "display_color": [104, 204, 104],
+                "max_duration": 30,
+                "lick_window": 15,
+                "decorators": [
+
+                    {
+                    "class": "exit_trigger",
+                    "joint_id": "patch_1"
+                    }
+                ]
+            },
+            {
+                "id": "syncLED",
+                "type": "pulsed",
+                "interval": 10000,
+                "durations": [500, 500],
+                "valves": [25, 23], 
+                "size": [76, 102],
+                "locations": [[0, 0]]
+            },
+            {
+                "id": "patch_1",
+                "class": "test",
+                "operant_rate": 10,
+                "reward_pin": 52,
+                "reward_duration": 5,
+                "speaker_pin": 51,
+                "speaker_duration": 0,
+                "speaker_freq": 4000,
+                "rate_params": {"tau": 15, "r0": 2.5, "rsi": 0.05, "Vr": 2},
+                "sensor": 0,
+                "locations": [[0, 51]],
+                // "valves": [52],
+                // "durations": [5],
+                "size":  [38, 51],
+                "count_stops": true,
+                "initial_open": true,
+                "display_color": [104, 204, 204],
+                "max_duration": 30,
+                "lick_window": 15,
+                "decorators": [
+
+                    {
+                    "class": "exit_trigger",
+                    "joint_id": "patch_2"
+                    }
+                ]
+            }
+            
+        ],
+        "sensors": [
+            {
+                "type": "analog_lick",
+                "pin": 2,
+                "lick_threshold": 2,
+                "lick_stop_threshold": 1.8,
+                //"buffered_read": true,
+                //"debug": true
+            },
+            {
+                "type": "analog_lick",
+                "pin": 0,
+                "lick_threshold": 2,
+                "lick_stop_threshold": 1.5,
+                //"buffered_read": true,
+                //"debug": true
+            }
+        ],
+        "trial_length": 1800, // duration (in s) of the trial.
+        "comment_keys": {
+            "g": "grooming"
+        },
+        "trial_attrs": {
+            "fields": [
+                {   
+                    "type": "String",
+                    "key": "wall_config"
+                }
+            ]
+        },
+        "position_scale": 1,
+        "environment_size": [76, 102],
+        "sync_pin":  12
+    },
+
+    "johntext": { // name for each profile of in this setting file
+        "controllers": {
+            "behavior_controller": {
+                //"ip": "192.168.1.101",
+                "ip": "127.0.0.1", // can alternatively use localhost for testing
+                //"send_port": 5000,
+                "send_port": 4096,
+                "receive_port": 5000
+            },
+            "position_controller": {
+                "ip": "192.168.1.102",
+                "send_port": 5005,
+                "receive_port": 5005
+            }
+        },
+        "reward": {"pin": [52, 50], "size": [0, 0], "locations": [[0, 0]]},
+        "contexts": [
+            {
+                "id": "patch_2",
+                "class": "johntext",
+                "reward_pin": 52,
+                "reward_duration": 5,
+                "rate_params": {"tau": [12, 8], "r0": 2.5, "V0": 0.2, "Vr": 2},
+                "sensor": 2,
+                "locations": [[-10, 200]],
+                "size":  [85, 85],
+                "count_stops": true,
+                "initial_open": true,
+                "display_color": [8, 144, 153],
+                "max_duration": 30,
+                "lick_window": 2,
+                "decorators": [
+
+                    {
+                    "class": "exit_trigger",
+                    "joint_id": "patch_1"
+                    }
+                ]
+            },
+            {
+                "id": "syncLED",
+                "type": "pulsed",
+                "interval": 10000,
+                "durations": [500, 500],
+                "valves": [25, 23], 
+                "size": [760, 1020],
+                "locations": [[0, 0]]
+            },
+            {
+                "id": "patch_1",
+                "class": "johntext",
+                "reward_pin": 52,
+                "reward_duration": 5,
+                "rate_params": {"tau": [12, 8], "r0": 2.5, "V0": 0.2, "Vr": 2},
+                "sensor": 0,
+                "locations": [[-10, 745]],
+                "size":  [85, 85],
+                "count_stops": true,
+                "initial_open": true,
+                "display_color": [224, 93, 92],
+                "max_duration": 30,
+                "lick_window": 2,
+                "decorators": [
+
+                    {
+                    "class": "exit_trigger",
+                    "joint_id": "patch_2"
+                    }
+                ]
+            }
+            
+        ],
+        "sensors": [
+            {
+                "type": "analog_lick",
+                "pin": 2,
+                "lick_threshold": 2,
+                "lick_stop_threshold": 2,
+                //"buffered_read": true,
+                //"debug": true
+            },
+            {
+                "type": "analog_lick",
+                "pin": 0,
+                "lick_threshold": 2,
+                "lick_stop_threshold": 1.5,
+                //"buffered_read": true,
+                //"debug": true
+            }
+        ],
+        "trial_length": 2400, // duration (in s) of the trial.
+        "comment_keys": {
+            "g": "grooming"
+        },
+        "trial_attrs": {
+            "fields": [
+                {   
+                    "type": "String",
+                    "key": "wall_config"
+                }
+            ]
+        },
+        "position_scale": 1,
+        "environment_size": [760, 1020],
+        "sync_pin":  12
+    },
+
+    "_system": {
+        "data_directory":"behaviorData"
+    }
+}

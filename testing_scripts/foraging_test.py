@@ -39,10 +39,10 @@ def lick_loop(lick_delay, lick_len, lick_start_msg, lick_stop_msg):
     licks = 0
     sleep(entrance_delay)
 
-patch1 = np.array([250, 750])
+patch1 = np.array([50, 780])
 hallway2 = np.array([500, 300])
 hallway1 = np.array([500, 750])
-patch2 = np.array([250, 300])
+patch2 = np.array([50, 250])
 
 # Define path
 path = [patch1, hallway1, patch1, hallway1, hallway2, patch2, hallway2, hallway1]  # Loop: patch1 → hallway → patch2 → hallway → patch1 ...

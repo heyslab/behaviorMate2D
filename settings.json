@@ -4,14 +4,15 @@
     "example": { // name for each profile of in this setting file
         "controllers": {
             "behavior_controller": {
-                "ip": "192.168.1.101",
-                //"ip": "127.0.0.1", // can alternatively use localhost for testing
-                "send_port": 5000,
-                //"send_port": 4096,
+                //"ip": "192.168.1.101",
+                "ip": "127.0.0.1", // can alternatively use localhost for testing
+                //"send_port": 5000,
+                "send_port": 4096,
                 "receive_port": 5000
             },
             "position_controller": {
-                "ip": "192.168.1.102",
+                //"ip": "192.168.1.102",
+                "ip": "127.0.0.1",
                 "send_port": 5005,
                 "receive_port": 5005
             }
@@ -20,7 +21,7 @@
         "contexts": [
             {
                 "id": "reward_left",
-                "class": "deterministic_depleting",
+                "class": "depleting_context",
                 //"rate_params": {"b0": 15, "C": 0.06, "a": 4, "o": 22},
                 "sensor": 2,
                 "count_stops": true,
@@ -43,7 +44,7 @@
             },
             {
                 "id": "reward_right",
-                "class": "deterministic_depleting",
+                "class": "depleting_context",
                 "sensor": 0,
                 "lick_window": 5,
                 "count_stops": true,
