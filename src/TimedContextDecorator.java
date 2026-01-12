@@ -73,6 +73,7 @@ public class TimedContextDecorator extends SuspendableContextDecorator {
             this.times = new float[2*times_array.size()];
             for (int i = 0; i < times_array.size(); i++) {
                 JSONArray start_stop = times_array.getJSONArray(i);
+                System.out.println(start_stop.toString());
                 this.times[2*i] = start_stop.getFloat(0);
                 this.times[2*i+1] = start_stop.getFloat(1);
             }
@@ -126,7 +127,7 @@ public class TimedContextDecorator extends SuspendableContextDecorator {
      *                   0 of the message buffer and must be JSON-formatted strings.
      * @return           ?
      */
-    public boolean check_suspend(float position, float time, int lap, int lick_count,
+    public boolean check_suspend(Point position, float time, int lap, int lick_count,
                                  HashMap<Integer, Integer> sensor_counts, JSONObject[] msg_buffer) {
 
         if (this.time_idx != -1) {

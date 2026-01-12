@@ -42,7 +42,7 @@ public class TrialCountDecorator extends ContextListDecorator {
      *                     from the settings file. The <tt>max_time</tt> parameter is optional
      *                     and will default to -1 if not provided.
      */
-    public LickStartContextDecorator(ContextList context_list,
+    public TrialCountDecorator(ContextList context_list,
                                      JSONObject context_info, int pin) {
         super(context_list);
         this.last_position = -1;
